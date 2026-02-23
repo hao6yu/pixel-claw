@@ -3,6 +3,65 @@ import { getSheets } from '../sprite-loader';
 import { FURNITURE_ATLAS } from '../atlas';
 import type { SpriteRect } from '../atlas';
 
+const TRIM_CACHE: Record<string, SpriteRect> = {};
+
+function getTrimmedFurnitureRect(key: string, baseRect: SpriteRect): SpriteRect {
+  if (TRIM_CACHE[key]) return TRIM_CACHE[key];
+  const sheets = getSheets();
+  if (!sheets) return baseRect;
+
+  const sample = document.createElement('canvas');
+  sample.width = baseRect.w;
+  sample.height = baseRect.h;
+  const sctx = sample.getContext('2d');
+  if (!sctx) return baseRect;
+
+  sctx.imageSmoothingEnabled = false;
+  sctx.drawImage(
+    sheets.furniture,
+    baseRect.x,
+    baseRect.y,
+    baseRect.w,
+    baseRect.h,
+    0,
+    0,
+    baseRect.w,
+    baseRect.h,
+  );
+
+  const img = sctx.getImageData(0, 0, baseRect.w, baseRect.h).data;
+  let minX = baseRect.w;
+  let minY = baseRect.h;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let yy = 0; yy < baseRect.h; yy++) {
+    for (let xx = 0; xx < baseRect.w; xx++) {
+      const a = img[(yy * baseRect.w + xx) * 4 + 3];
+      if (a > 8) {
+        if (xx < minX) minX = xx;
+        if (yy < minY) minY = yy;
+        if (xx > maxX) maxX = xx;
+        if (yy > maxY) maxY = yy;
+      }
+    }
+  }
+
+  if (maxX < minX || maxY < minY) {
+    TRIM_CACHE[key] = baseRect;
+    return baseRect;
+  }
+
+  const trimmed: SpriteRect = {
+    x: baseRect.x + minX,
+    y: baseRect.y + minY,
+    w: Math.max(1, maxX - minX + 1),
+    h: Math.max(1, maxY - minY + 1),
+  };
+  TRIM_CACHE[key] = trimmed;
+  return trimmed;
+}
+
 /** Draw a furniture sprite from the sheet. Returns true if drawn. */
 function drawFurnitureSprite(
   ctx: CanvasRenderingContext2D,
@@ -14,8 +73,9 @@ function drawFurnitureSprite(
   if (!sheets) return false;
   const rect = FURNITURE_ATLAS[key];
   if (!rect) return false;
+  const src = getTrimmedFurnitureRect(key, rect);
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(sheets.furniture, rect.x, rect.y, rect.w, rect.h, Math.round(x), Math.round(y), Math.round(destW), Math.round(destH));
+  ctx.drawImage(sheets.furniture, src.x, src.y, src.w, src.h, Math.round(x), Math.round(y), Math.round(destW), Math.round(destH));
   return true;
 }
 
