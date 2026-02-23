@@ -96,14 +96,14 @@ export class Renderer {
 
     // ── Layer 3: Wall-mounted furniture ──
     const L = LAYOUT;
-    // Lead office wall decorations (larger + anchored to wall base)
-    drawBookshelf(ctx, 10 * s, 4 * s, s);
-    drawLandscapePainting(ctx, 72 * s, 14 * s, s);
+    // Lead office wall decorations (right-sized so full icon is visible)
+    drawBookshelf(ctx, 12 * s, 8 * s, s);
+    drawLandscapePainting(ctx, 74 * s, 14 * s, s);
 
-    // Main floor wall decorations (fewer items, less crowding)
-    drawBookshelf(ctx, (L.DIVIDER_X + 10) * s, 4 * s, s);
-    drawWhiteboard(ctx, (L.DIVIDER_X + 58) * s, 10 * s, s);
-    drawClock(ctx, (L.DIVIDER_X + 120) * s, 12 * s, s, this.globalTime);
+    // Main floor wall decorations
+    drawBookshelf(ctx, (L.DIVIDER_X + 10) * s, 8 * s, s);
+    drawWhiteboard(ctx, (L.DIVIDER_X + 56) * s, 12 * s, s);
+    drawClock(ctx, (L.DIVIDER_X + 116) * s, 12 * s, s, this.globalTime);
 
     // ── Collect all ground-level items for y-sort ──
     interface Drawable {
