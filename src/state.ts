@@ -201,6 +201,10 @@ export class StateManager {
     }
   }
 
+  findAgent(sessionKey: string): AgentState | undefined {
+    return this.findAgentBySessionKey(sessionKey);
+  }
+
   private findAgentBySessionKey(sessionKey: string): AgentState | undefined {
     // Direct match
     const direct = this.agents.get(sessionKey);

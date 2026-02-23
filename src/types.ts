@@ -7,7 +7,24 @@ export type AgentActivity =
   | 'running-cmd'
   | 'communicating'
   | 'sleeping'
-  | 'error';
+  | 'error'
+  | 'walking';
+
+export type ZoneType = 'lead-office' | 'main-floor' | 'break-room' | 'sub-agent-zone';
+
+export interface Zone {
+  type: ZoneType;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  floorType: 'carpet' | 'wood' | 'tile';
+}
+
+export interface Waypoint {
+  x: number;
+  y: number;
+}
 
 export interface AgentIdentity {
   agentId: string;
@@ -35,6 +52,16 @@ export interface AgentState {
   color: string;
   animFrame: number;
   animTimer: number;
+  // zone system
+  zone?: ZoneType;
+  targetZone?: ZoneType;
+  targetX?: number;
+  targetY?: number;
+  walkPath?: Waypoint[];
+  walkIndex?: number;
+  previousActivity?: AgentActivity;
+  accessory?: number; // 0=none, 1=glasses, 2=headphones, 3=hat
+  spawnAlpha?: number; // for sub-agent fade in/out
 }
 
 export interface WsRequest {
