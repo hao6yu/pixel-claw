@@ -10,6 +10,11 @@ const DESKS_PER_ROW = 5;
 const OFFICE_PADDING_X = 6;
 const OFFICE_PADDING_Y = 24;
 
+const SUB_SCALE = 2;          // sub-agents are smaller
+const SUB_OFFSET_X = 22;      // offset from parent desk
+const SUB_OFFSET_Y = 8;
+const SUB_STACK_Y = 26;       // vertical spacing between sub-agents
+
 export class Renderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
@@ -29,7 +34,6 @@ export class Renderer {
   }
 
   private resize() {
-    const dpr = 1; // keep pixel-perfect
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
   }
@@ -49,10 +53,8 @@ export class Renderer {
     if (!this.running) return;
     const dt = (time - this.lastTime) / 1000;
     this.lastTime = time;
-
     this.state.tick(dt);
     this.render();
-
     requestAnimationFrame((t) => this.loop(t));
   }
 
@@ -72,51 +74,81 @@ export class Renderer {
     const w = canvas.width;
     const h = canvas.height;
 
-    // Background — dark office floor
     ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(0, 0, w, h);
-
-    // Tile pattern
     this.drawFloor(w, h);
 
-    // Draw desks and characters
-    const agents = Array.from(this.state.agents.values());
-    for (const agent of agents) {
-      const pos = this.getDeskPosition(agent.deskIndex);
+    // Separate main agents and sub-agents
+    const mainAgents = this.state.getMainAgents();
+    const allAgents = Array.from(this.state.agents.values());
+
+    // Assign desk positions to main agents
+    mainAgents.forEach((agent, i) => {
+      agent.deskIndex = i;
+      const pos = this.getDeskPosition(i);
       agent.x = pos.x;
       agent.y = pos.y;
+    });
 
-      // Desk
-      drawDesk(ctx, pos.x, pos.y, SCALE);
+    // Position sub-agents near their parents
+    for (const agent of allAgents) {
+      if (!agent.isSubAgent) continue;
+      const parent = agent.spawnedBy ? this.state.agents.get(agent.spawnedBy) : null;
+      if (parent) {
+        const siblings = this.state.getSubAgents(parent.sessionKey);
+        const sibIdx = siblings.indexOf(agent);
+        agent.x = parent.x + SUB_OFFSET_X * SCALE;
+        agent.y = parent.y + (SUB_OFFSET_Y + sibIdx * SUB_STACK_Y) * SUB_SCALE;
+      } else {
+        // Orphan sub-agent — give it a regular desk
+        const pos = this.getDeskPosition(mainAgents.length + agent.deskIndex);
+        agent.x = pos.x;
+        agent.y = pos.y;
+      }
+    }
 
-      // Character (sitting at desk, slightly offset)
-      drawCharacter(
-        ctx,
-        pos.x + 1 * SCALE,
-        pos.y - 10 * SCALE,
-        agent.color,
-        agent.activity,
-        agent.animFrame,
-        SCALE
-      );
+    // Draw connection lines from sub-agents to parents
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    for (const agent of allAgents) {
+      if (!agent.isSubAgent || !agent.spawnedBy) continue;
+      const parent = this.state.agents.get(agent.spawnedBy);
+      if (!parent) continue;
+      const px = parent.x + 8 * SCALE;
+      const py = parent.y + 5 * SCALE;
+      const ax = agent.x + 8 * (agent.isSubAgent && parent ? SUB_SCALE : SCALE);
+      const ay = agent.y + 5 * (agent.isSubAgent && parent ? SUB_SCALE : SCALE);
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(ax, ay);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
 
-      // Name tag
-      ctx.fillStyle = agent === this.selectedAgent ? '#e94560' : '#c0c0d0';
-      ctx.font = `${11}px "Courier New", monospace`;
-      ctx.textAlign = 'center';
-      ctx.fillText(agent.label, pos.x + 8 * SCALE, pos.y + 32 * SCALE);
-      ctx.textAlign = 'left';
+    // Draw main agents with desks
+    for (const agent of mainAgents) {
+      drawDesk(ctx, agent.x, agent.y, SCALE);
+      drawCharacter(ctx, agent.x + 1 * SCALE, agent.y - 10 * SCALE, agent.color, agent.activity, agent.animFrame, SCALE);
+      this.drawLabel(agent, SCALE);
+    }
 
-      // Activity label
-      ctx.fillStyle = '#808090';
-      ctx.font = `${9}px "Courier New", monospace`;
-      ctx.textAlign = 'center';
-      ctx.fillText(agent.activity, pos.x + 8 * SCALE, pos.y + 35 * SCALE);
-      ctx.textAlign = 'left';
+    // Draw sub-agents (smaller, no desk — just a small side table)
+    for (const agent of allAgents) {
+      if (!agent.isSubAgent) continue;
+      const parent = agent.spawnedBy ? this.state.agents.get(agent.spawnedBy) : null;
+      const s = parent ? SUB_SCALE : SCALE;
+
+      // Mini side table
+      ctx.fillStyle = '#6b5337';
+      ctx.fillRect(Math.round(agent.x), Math.round(agent.y + 14 * s), Math.round(14 * s), Math.round(3 * s));
+
+      drawCharacter(ctx, agent.x + 1 * s, agent.y - 10 * s, agent.color, agent.activity, agent.animFrame, s);
+      this.drawLabel(agent, s);
     }
 
     // Empty state
-    if (agents.length === 0) {
+    if (allAgents.length === 0) {
       ctx.fillStyle = '#404060';
       ctx.font = '16px "Courier New", monospace';
       ctx.textAlign = 'center';
@@ -125,6 +157,28 @@ export class Renderer {
       ctx.fillText('🦀', w / 2, h / 2 + 30);
       ctx.textAlign = 'left';
     }
+  }
+
+  private drawLabel(agent: AgentState, scale: number) {
+    const { ctx } = this;
+    const cx = agent.x + 8 * scale;
+    const baseY = agent.y + 32 * scale;
+
+    // Emoji + name
+    const emoji = agent.identity?.emoji || '';
+    const displayName = emoji ? `${emoji} ${agent.label}` : agent.label;
+
+    const isSelected = agent === this.selectedAgent;
+    ctx.fillStyle = isSelected ? '#e94560' : (agent.isSubAgent ? '#909098' : '#c0c0d0');
+    ctx.font = `${scale === SCALE ? 11 : 9}px "Courier New", monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText(displayName, cx, baseY);
+
+    // Activity
+    ctx.fillStyle = '#808090';
+    ctx.font = `${scale === SCALE ? 9 : 7}px "Courier New", monospace`;
+    ctx.fillText(agent.activity, cx, baseY + (scale === SCALE ? 12 : 9));
+    ctx.textAlign = 'left';
   }
 
   private drawFloor(w: number, h: number) {
@@ -137,20 +191,13 @@ export class Renderer {
         ctx.fillRect(x, y, tileS, tileS);
       }
     }
-    // Subtle grid lines
     ctx.strokeStyle = 'rgba(255,255,255,0.03)';
     ctx.lineWidth = 1;
     for (let y = 0; y < h; y += tileS) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
     }
     for (let x = 0; x < w; x += tileS) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
     }
   }
 
@@ -160,10 +207,11 @@ export class Renderer {
     const clickY = e.clientY;
 
     for (const agent of agents) {
+      const s = (agent.isSubAgent && agent.spawnedBy && this.state.agents.has(agent.spawnedBy)) ? SUB_SCALE : SCALE;
       const ax = agent.x;
-      const ay = agent.y - 10 * SCALE;
-      const aw = 16 * SCALE;
-      const ah = 30 * SCALE;
+      const ay = agent.y - 10 * s;
+      const aw = 16 * s;
+      const ah = 30 * s;
 
       if (clickX >= ax && clickX <= ax + aw && clickY >= ay && clickY <= ay + ah) {
         this.selectedAgent = agent;

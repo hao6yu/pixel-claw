@@ -9,14 +9,25 @@ export type AgentActivity =
   | 'sleeping'
   | 'error';
 
+export interface AgentIdentity {
+  agentId: string;
+  name?: string;
+  emoji?: string;
+  avatar?: string;
+}
+
 export interface AgentState {
   sessionKey: string;
+  agentId: string;
   label: string;
   activity: AgentActivity;
   lastActiveAt: number;
   model?: string;
   lastMessage?: string;
   runId?: string;
+  spawnedBy?: string;       // parent session key
+  isSubAgent: boolean;
+  identity?: AgentIdentity; // cached identity info
   // rendering
   x: number;
   y: number;
@@ -64,7 +75,10 @@ export interface ChatEventPayload {
 
 export interface SessionInfo {
   key: string;
+  agentId?: string;
   label?: string;
   model?: string;
   state?: string;
+  spawnedBy?: string;
+  lastMessage?: string;
 }

@@ -20,6 +20,9 @@ export function initUI(state: StateManager, gateway: Gateway, renderer: Renderer
   const detailActivity = document.getElementById('detail-activity')!;
   const detailModel = document.getElementById('detail-model')!;
   const detailPreview = document.getElementById('detail-preview')!;
+  const detailSpawnedBy = document.getElementById('detail-spawned-by')!;
+  const detailAgentId = document.getElementById('detail-agent-id')!;
+  const spawnedByRow = document.getElementById('spawned-by-row')!;
 
   // Load saved values
   const params = new URLSearchParams(window.location.search);
@@ -67,33 +70,44 @@ export function initUI(state: StateManager, gateway: Gateway, renderer: Renderer
     }
   };
 
-  // Update session count periodically
   setInterval(() => {
     const count = state.agents.size;
     sessionCount.textContent = `${count} agent${count !== 1 ? 's' : ''}`;
   }, 1000);
 
-  // Agent detail panel
+  function updateDetailPanel(agent: AgentState) {
+    const emoji = agent.identity?.emoji || '';
+    const name = agent.identity?.name || agent.label;
+    detailName.textContent = emoji ? `${emoji} ${name}` : name;
+    detailAgentId.textContent = agent.agentId;
+    detailSession.textContent = agent.sessionKey;
+    detailActivity.textContent = agent.activity;
+    detailModel.textContent = agent.model || 'unknown';
+    detailPreview.textContent = agent.lastMessage || '(no recent output)';
+
+    if (agent.spawnedBy) {
+      spawnedByRow.style.display = 'block';
+      // Try to find parent's display name
+      const parent = state.agents.get(agent.spawnedBy);
+      const parentLabel = parent?.identity?.name || parent?.label || agent.spawnedBy;
+      detailSpawnedBy.textContent = parentLabel;
+    } else {
+      spawnedByRow.style.display = 'none';
+    }
+  }
+
   renderer.onAgentClick = (agent: AgentState | null) => {
     if (!agent) {
       detailPanel.style.display = 'none';
       return;
     }
     detailPanel.style.display = 'block';
-    detailName.textContent = agent.label;
-    detailSession.textContent = agent.sessionKey;
-    detailActivity.textContent = agent.activity;
-    detailModel.textContent = agent.model || 'unknown';
-    detailPreview.textContent = agent.lastMessage || '(no recent output)';
+    updateDetailPanel(agent);
   };
 
-  // Keep detail panel updated
   setInterval(() => {
     if (renderer.selectedAgent && detailPanel.style.display === 'block') {
-      const a = renderer.selectedAgent;
-      detailActivity.textContent = a.activity;
-      detailModel.textContent = a.model || 'unknown';
-      detailPreview.textContent = a.lastMessage || '(no recent output)';
+      updateDetailPanel(renderer.selectedAgent);
     }
   }, 500);
 }

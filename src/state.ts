@@ -1,36 +1,78 @@
-import type { AgentState, AgentActivity, ChatEventPayload, SessionInfo } from './types';
+import type { AgentState, AgentActivity, AgentIdentity, ChatEventPayload, SessionInfo } from './types';
 
-const AGENT_COLORS = [
+// Curated palette — visually distinct, pleasant colors
+const PALETTE = [
   '#e94560', '#4ecca3', '#f0c040', '#60a0f0',
   '#c060e0', '#f08050', '#50d0d0', '#d0d050',
   '#a070f0', '#70f0a0', '#f070b0', '#70b0f0',
+  '#e07070', '#70e0b0', '#b0a0f0', '#f0b070',
 ];
 
-let colorIndex = 0;
+// Deterministic color from agentId — same agent always gets same color
+function hashColor(agentId: string): string {
+  let hash = 0;
+  for (let i = 0; i < agentId.length; i++) {
+    hash = ((hash << 5) - hash + agentId.charCodeAt(i)) | 0;
+  }
+  return PALETTE[Math.abs(hash) % PALETTE.length];
+}
+
+// Extract agentId from session key like "agent:01-tech-lead:xxx"
+function extractAgentId(sessionKey: string): string {
+  const parts = sessionKey.split(':');
+  if (parts.length >= 2 && parts[0] === 'agent') return parts[1];
+  return sessionKey;
+}
 
 export class StateManager {
   agents: Map<string, AgentState> = new Map();
+  identityCache: Map<string, AgentIdentity> = new Map();
   private deskCounter = 0;
+  onIdentityNeeded?: (agentId: string) => void;
 
-  getOrCreateAgent(sessionKey: string): AgentState {
+  getOrCreateAgent(sessionKey: string, agentId?: string, spawnedBy?: string): AgentState {
     let agent = this.agents.get(sessionKey);
     if (!agent) {
+      const resolvedAgentId = agentId || extractAgentId(sessionKey);
+      const isSubAgent = !!spawnedBy;
       const deskIndex = this.deskCounter++;
       agent = {
         sessionKey,
-        label: sessionKey.split(':').pop() || sessionKey,
+        agentId: resolvedAgentId,
+        label: resolvedAgentId,
         activity: 'idle',
         lastActiveAt: Date.now(),
+        spawnedBy,
+        isSubAgent,
         x: 0,
         y: 0,
         deskIndex,
-        color: AGENT_COLORS[colorIndex++ % AGENT_COLORS.length],
+        color: hashColor(resolvedAgentId),
         animFrame: 0,
         animTimer: 0,
       };
       this.agents.set(sessionKey, agent);
+
+      // Apply cached identity if available
+      const identity = this.identityCache.get(resolvedAgentId);
+      if (identity) {
+        agent.identity = identity;
+        if (identity.name) agent.label = identity.name;
+      } else {
+        this.onIdentityNeeded?.(resolvedAgentId);
+      }
     }
     return agent;
+  }
+
+  applyIdentity(identity: AgentIdentity): void {
+    this.identityCache.set(identity.agentId, identity);
+    for (const agent of this.agents.values()) {
+      if (agent.agentId === identity.agentId) {
+        agent.identity = identity;
+        if (identity.name) agent.label = identity.name;
+      }
+    }
   }
 
   handleChatEvent(payload: ChatEventPayload): void {
@@ -47,7 +89,6 @@ export class StateManager {
       return;
     }
 
-    // delta — figure out what kind
     const msg = payload.message;
     if (!msg) {
       agent.activity = 'thinking';
@@ -66,10 +107,7 @@ export class StateManager {
             agent.lastMessage = `Using ${b.name}`;
             return;
           }
-          if (b.type === 'tool_result') {
-            // keep current activity
-            return;
-          }
+          if (b.type === 'tool_result') return;
           if (b.type === 'text' && typeof b.text === 'string') {
             agent.lastMessage = b.text.slice(0, 200);
           }
@@ -89,11 +127,29 @@ export class StateManager {
     const seen = new Set<string>();
     for (const s of sessions) {
       seen.add(s.key);
-      const agent = this.getOrCreateAgent(s.key);
+      const agent = this.getOrCreateAgent(s.key, s.agentId, s.spawnedBy);
       if (s.label) agent.label = s.label;
       if (s.model) agent.model = s.model;
+      if (s.spawnedBy) agent.spawnedBy = s.spawnedBy;
+      if (s.lastMessage) agent.lastMessage = s.lastMessage;
+      // Update agentId if provided and different
+      if (s.agentId && s.agentId !== agent.agentId) {
+        agent.agentId = s.agentId;
+        agent.color = hashColor(s.agentId);
+        const identity = this.identityCache.get(s.agentId);
+        if (identity) {
+          agent.identity = identity;
+          if (identity.name) agent.label = identity.name;
+        } else {
+          this.onIdentityNeeded?.(s.agentId);
+        }
+      }
+      // Restore label from identity if not overridden by session label
+      if (!s.label && agent.identity?.name) {
+        agent.label = agent.identity.name;
+      }
     }
-    // Remove agents whose sessions are gone (keep for 60s grace)
+    // Remove stale agents
     for (const [key, agent] of this.agents) {
       if (!seen.has(key) && Date.now() - agent.lastActiveAt > 60_000) {
         this.agents.delete(key);
@@ -101,10 +157,19 @@ export class StateManager {
     }
   }
 
+  // Get main agents (not sub-agents)
+  getMainAgents(): AgentState[] {
+    return Array.from(this.agents.values()).filter(a => !a.isSubAgent);
+  }
+
+  // Get sub-agents for a given parent session key
+  getSubAgents(parentKey: string): AgentState[] {
+    return Array.from(this.agents.values()).filter(a => a.spawnedBy === parentKey);
+  }
+
   tick(dt: number): void {
     const now = Date.now();
     for (const agent of this.agents.values()) {
-      // Sleeping detection
       if (agent.activity === 'idle' && now - agent.lastActiveAt > 30 * 60_000) {
         agent.activity = 'sleeping';
       }
@@ -125,5 +190,5 @@ function classifyTool(name: string): AgentActivity {
   if (['exec', 'process'].some(t => n === t.toLowerCase())) return 'running-cmd';
   if (['web_search', 'web_fetch', 'browser'].some(t => n.includes(t))) return 'browsing';
   if (['message', 'tts'].some(t => n === t.toLowerCase())) return 'communicating';
-  return 'coding'; // generic working
+  return 'coding';
 }

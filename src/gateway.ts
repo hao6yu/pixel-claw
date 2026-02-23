@@ -9,12 +9,15 @@ export class Gateway {
   private ws: WebSocket | null = null;
   private pendingRequests = new Map<string, (res: WsResponse) => void>();
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private identityRequested = new Set<string>();
   state: StateManager;
   connected = false;
   onStatusChange?: (connected: boolean) => void;
 
   constructor(state: StateManager) {
     this.state = state;
+    // Hook up identity fetching
+    this.state.onIdentityNeeded = (agentId) => this.fetchIdentity(agentId);
   }
 
   async connect(url: string, token: string): Promise<void> {
@@ -31,9 +34,7 @@ export class Gateway {
         reject(new Error('Connection timeout'));
       }, 10_000);
 
-      this.ws.onopen = () => {
-        // Wait for challenge
-      };
+      this.ws.onopen = () => {};
 
       this.ws.onclose = () => {
         clearTimeout(timeout);
@@ -57,7 +58,6 @@ export class Gateway {
           return;
         }
 
-        // Handle challenge
         if (msg.type === 'event' && msg.event === 'connect.challenge') {
           this.send({
             type: 'req',
@@ -69,8 +69,8 @@ export class Gateway {
               role: 'operator',
               scopes: ['operator.read'],
               client: {
-                id: 'webchat-ui',
-                version: '0.1.0',
+                id: 'openclaw-control-ui',
+                version: '0.2.0',
                 platform: navigator.platform || 'web',
                 mode: 'ui',
               },
@@ -80,7 +80,6 @@ export class Gateway {
           return;
         }
 
-        // Handle hello-ok
         if (msg.type === 'res' && !handshakeDone) {
           clearTimeout(timeout);
           if (msg.ok) {
@@ -96,7 +95,6 @@ export class Gateway {
           return;
         }
 
-        // Handle events
         if (msg.type === 'event') {
           if (msg.event === 'chat') {
             this.state.handleChatEvent(msg.payload as unknown as ChatEventPayload);
@@ -104,7 +102,6 @@ export class Gateway {
           return;
         }
 
-        // Handle responses
         if (msg.type === 'res' && msg.id) {
           const cb = this.pendingRequests.get(msg.id);
           if (cb) {
@@ -120,7 +117,7 @@ export class Gateway {
     this.ws?.send(JSON.stringify(data));
   }
 
-  private async request(method: string, params?: Record<string, unknown>): Promise<WsResponse> {
+  request(method: string, params?: Record<string, unknown>): Promise<WsResponse> {
     return new Promise((resolve) => {
       const id = uuid();
       this.pendingRequests.set(id, resolve);
@@ -147,12 +144,30 @@ export class Gateway {
   }
 
   private async pollSessions(): Promise<void> {
-    const res = await this.request('sessions.list');
+    const res = await this.request('sessions.list', { includeLastMessage: true, activeMinutes: 120 });
     if (res.ok && res.payload) {
-      const sessions = (res.payload as unknown as { sessions?: SessionInfo[] }).sessions;
+      const p = res.payload as Record<string, unknown>;
+      // Gateway may return sessions at top level or nested
+      const sessions = (p.sessions ?? p) as SessionInfo[];
+      console.log('[pixel-claw] sessions.list:', JSON.stringify(p).substring(0, 500));
       if (Array.isArray(sessions)) {
         this.state.updateFromSessions(sessions);
       }
+    }
+  }
+
+  private async fetchIdentity(agentId: string): Promise<void> {
+    if (this.identityRequested.has(agentId)) return;
+    this.identityRequested.add(agentId);
+
+    const res = await this.request('agent.identity', { agentId });
+    if (res.ok && res.payload) {
+      this.state.applyIdentity({
+        agentId,
+        name: res.payload.name as string | undefined,
+        emoji: res.payload.emoji as string | undefined,
+        avatar: res.payload.avatar as string | undefined,
+      });
     }
   }
 
@@ -161,6 +176,7 @@ export class Gateway {
     this.ws?.close();
     this.ws = null;
     this.connected = false;
+    this.identityRequested.clear();
     this.state.agents.clear();
   }
 }
