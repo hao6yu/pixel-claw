@@ -134,14 +134,15 @@ export function drawClock(ctx: CanvasRenderingContext2D, x: number, y: number, s
   pxAt(ctx, bx, by, 4, 6, 1, 1, '#3a3030', s);
   pxAt(ctx, bx, by, 1, 4, 1, 1, '#3a3030', s);
 
-  const h = (time * 0.05) % 12;
-  const m = (time * 0.8) % 60;
-  const hDir = Math.floor(h / 3) % 4;
+  const t = time || 0;
+  const h = (t * 0.05) % 12;
+  const m = (t * 0.8) % 60;
   const handPositions = [[4, 2], [5, 4], [4, 5], [2, 4]];
+  const mPositions = [[4, 1], [6, 4], [4, 6], [1, 4]];
+  const hDir = Math.abs(Math.floor(h / 3)) % 4;
+  const mDir = Math.abs(Math.floor(m / 15)) % 4;
   pxAt(ctx, bx, by, 4, 4, 1, 1, '#2a2020', s);
   pxAt(ctx, bx, by, handPositions[hDir][0], handPositions[hDir][1], 1, 1, '#2a2020', s);
-  const mDir = Math.floor(m / 15) % 4;
-  const mPositions = [[4, 1], [6, 4], [4, 6], [1, 4]];
   pxAt(ctx, bx, by, mPositions[mDir][0], mPositions[mDir][1], 1, 1, '#c04040', s);
 }
 

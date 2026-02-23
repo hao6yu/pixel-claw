@@ -1,7 +1,7 @@
 import type { AgentState, Zone, ZoneType, Waypoint } from './types';
 
 // Virtual canvas dimensions
-const VW = 260;
+const VW = 320;
 const VH = 200;
 const WALL_H = 28;
 
@@ -44,9 +44,9 @@ export const LAYOUT = {
   LEAD_DESK_Y: WALL_H + 20,
   // Main floor desk grid
   MAIN_DESKS_PER_ROW: 3,
-  MAIN_DESK_START_X: DIVIDER_X + 12,
+  MAIN_DESK_START_X: DIVIDER_X + 14,
   MAIN_DESK_START_Y: WALL_H + 10,
-  MAIN_DESK_SPACING_X: 28,
+  MAIN_DESK_SPACING_X: 46,
   MAIN_DESK_SPACING_Y: 44,
   // Break room positions
   BREAK_START_X: 8,
@@ -63,7 +63,7 @@ export const LAYOUT = {
   DOORWAY_H: 20,
 };
 
-const IDLE_BREAK_THRESHOLD = 5 * 60_000; // 5 minutes
+const IDLE_BREAK_THRESHOLD = 30_000; // 30 seconds (for testing, bump to 5*60_000 for prod)
 const WALK_SPEED = 30; // virtual pixels per second
 
 export class ZoneManager {
@@ -164,10 +164,23 @@ export class ZoneManager {
         agent.zone = newZone;
         agent.targetX = target.x;
         agent.targetY = target.y;
-        // Smooth snap for initial placement
+        // Initial placement
         if (agent.x === 0 && agent.y === 0) {
-          agent.x = target.x;
-          agent.y = target.y;
+          if (agent.isSubAgent) {
+            // Sub-agents spawn at right edge and walk in
+            agent.x = VW + 10;
+            agent.y = target.y;
+            agent.targetZone = newZone;
+            agent.targetX = target.x;
+            agent.targetY = target.y;
+            agent.previousActivity = agent.activity;
+            agent.activity = 'walking';
+            agent.walkPath = [{ x: target.x, y: target.y }];
+            agent.walkIndex = 0;
+          } else {
+            agent.x = target.x;
+            agent.y = target.y;
+          }
         }
       }
 
