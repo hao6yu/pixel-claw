@@ -71,20 +71,21 @@ export const FURNITURE_ATLAS: Record<string, SpriteRect> = {
   'chair-variant': { x: 850, y: 350, w: 110, h: 125 },
 
   // Row 4: Bookshelves, Plants, Decor
-  'bookshelf-large': { x: 18, y: 500, w: 170, h: 145 },
-  'bookshelf-medium': { x: 200, y: 500, w: 155, h: 145 },
+  // Trimmed to content bounds (source PNG has heavy top padding in these cells)
+  'bookshelf-large': { x: 36, y: 540, w: 141, h: 105 },
+  'bookshelf-medium': { x: 209, y: 538, w: 140, h: 107 },
   'plant-tall': { x: 390, y: 500, w: 105, h: 130 },
   'plant-wide': { x: 525, y: 505, w: 110, h: 125 },
-  'clock': { x: 680, y: 505, w: 120, h: 120 },
-  'painting-landscape': { x: 840, y: 510, w: 130, h: 110 },
+  'clock': { x: 698, y: 505, w: 102, h: 120 },
+  'painting-landscape': { x: 855, y: 549, w: 115, h: 71 },
 
   // Row 5: Vending, Couch, Whiteboard
-  'vending-machine': { x: 15, y: 660, w: 155, h: 175 },
-  'coffee-machine-large': { x: 185, y: 660, w: 160, h: 170 },
-  'water-cooler-large': { x: 375, y: 660, w: 115, h: 170 },
-  'couch': { x: 510, y: 685, w: 195, h: 140 },
+  'vending-machine': { x: 35, y: 660, w: 135, h: 175 },
+  'coffee-machine-large': { x: 195, y: 660, w: 150, h: 170 },
+  'water-cooler-large': { x: 398, y: 660, w: 90, h: 170 },
+  'couch': { x: 512, y: 721, w: 193, h: 104 },
   'armchair': { x: 720, y: 695, w: 100, h: 125 },
-  'whiteboard': { x: 840, y: 670, w: 150, h: 155 },
+  'whiteboard': { x: 850, y: 721, w: 139, h: 104 },
 
   // Row 6
   'vending-small': { x: 15, y: 855, w: 145, h: 155 },
