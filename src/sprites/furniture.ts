@@ -30,6 +30,40 @@ function getTrimmedFurnitureRect(key: string, baseRect: SpriteRect): SpriteRect 
   );
 
   const img = sctx.getImageData(0, 0, baseRect.w, baseRect.h).data;
+
+  const corners = [
+    0,
+    (baseRect.w - 1) * 4,
+    ((baseRect.h - 1) * baseRect.w) * 4,
+    (((baseRect.h - 1) * baseRect.w) + (baseRect.w - 1)) * 4,
+  ];
+  let bgR = 0, bgG = 0, bgB = 0, bgA = 0;
+  for (const idx of corners) {
+    bgR += img[idx];
+    bgG += img[idx + 1];
+    bgB += img[idx + 2];
+    bgA += img[idx + 3];
+  }
+  bgR /= corners.length;
+  bgG /= corners.length;
+  bgB /= corners.length;
+  bgA /= corners.length;
+
+  const isForeground = (r: number, g: number, b: number, a: number) => {
+    // Transparent pixels are always background
+    if (a <= 8) return false;
+
+    // If sprite cell has opaque matte background, treat near-corner color as padding
+    const dr = r - bgR;
+    const dg = g - bgG;
+    const db = b - bgB;
+    const da = a - bgA;
+    const colorDist2 = dr * dr + dg * dg + db * db + da * da;
+
+    // Tight threshold to avoid eating real pixels
+    return colorDist2 > 24 * 24;
+  };
+
   let minX = baseRect.w;
   let minY = baseRect.h;
   let maxX = -1;
@@ -37,8 +71,8 @@ function getTrimmedFurnitureRect(key: string, baseRect: SpriteRect): SpriteRect 
 
   for (let yy = 0; yy < baseRect.h; yy++) {
     for (let xx = 0; xx < baseRect.w; xx++) {
-      const a = img[(yy * baseRect.w + xx) * 4 + 3];
-      if (a > 8) {
+      const i = (yy * baseRect.w + xx) * 4;
+      if (isForeground(img[i], img[i + 1], img[i + 2], img[i + 3])) {
         if (xx < minX) minX = xx;
         if (yy < minY) minY = yy;
         if (xx > maxX) maxX = xx;
@@ -52,11 +86,12 @@ function getTrimmedFurnitureRect(key: string, baseRect: SpriteRect): SpriteRect 
     return baseRect;
   }
 
+  const pad = 1;
   const trimmed: SpriteRect = {
-    x: baseRect.x + minX,
-    y: baseRect.y + minY,
-    w: Math.max(1, maxX - minX + 1),
-    h: Math.max(1, maxY - minY + 1),
+    x: baseRect.x + Math.max(0, minX - pad),
+    y: baseRect.y + Math.max(0, minY - pad),
+    w: Math.max(1, Math.min(baseRect.w, maxX - minX + 1 + pad * 2)),
+    h: Math.max(1, Math.min(baseRect.h, maxY - minY + 1 + pad * 2)),
   };
   TRIM_CACHE[key] = trimmed;
   return trimmed;
