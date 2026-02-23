@@ -1,6 +1,22 @@
 import { pxAt } from '../utils';
+import { getSheets } from '../sprite-loader';
+import { UI_ATLAS } from '../atlas';
 
 export function drawZzz(ctx: CanvasRenderingContext2D, bx: number, by: number, time: number, s: number) {
+  const sheets = getSheets();
+  if (sheets) {
+    const rect = UI_ATLAS['icon-sleep'];
+    if (rect) {
+      const alpha = 0.5 + 0.3 * Math.sin(time * 2);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(sheets.uiEffects, rect.x, rect.y, rect.w, rect.h,
+        Math.round((bx + 14) * s), Math.round((by - 8) * s), Math.round(8 * s), Math.round(8 * s));
+      ctx.restore();
+      return;
+    }
+  }
   const phase = time % 3;
   const alpha1 = Math.min(1, phase);
   const alpha2 = Math.max(0, Math.min(1, phase - 0.8));
@@ -24,6 +40,16 @@ function fillPixelText(ctx: CanvasRenderingContext2D, text: string, x: number, y
 }
 
 export function drawThoughtBubble(ctx: CanvasRenderingContext2D, bx: number, by: number, time: number, s: number) {
+  const sheets = getSheets();
+  if (sheets) {
+    const rect = UI_ATLAS['thought-bubble'];
+    if (rect) {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(sheets.uiEffects, rect.x, rect.y, rect.w, rect.h,
+        Math.round((bx + 8) * s), Math.round((by - 14) * s), Math.round(18 * s), Math.round(14 * s));
+      return;
+    }
+  }
   const dx = bx + 14;
   const dy = by + 1;
   pxAt(ctx, 0, 0, dx, dy, 2, 2, 'rgba(255,255,255,0.5)', s);

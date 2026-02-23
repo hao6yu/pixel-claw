@@ -1,7 +1,39 @@
 import { darken, lighten } from '../utils';
 import type { Zone } from '../types';
+import { getSheets } from '../sprite-loader';
+import { FURNITURE_ATLAS } from '../atlas';
+
+/** Tile a floor sprite across a zone */
+function tileFloorSprite(ctx: CanvasRenderingContext2D, zone: Zone, s: number, spriteKey: string): boolean {
+  const sheets = getSheets();
+  if (!sheets) return false;
+  const rect = FURNITURE_ATLAS[spriteKey];
+  if (!rect) return false;
+
+  ctx.imageSmoothingEnabled = false;
+  const x0 = Math.round(zone.x * s);
+  const y0 = Math.round(zone.y * s);
+  const w = Math.round(zone.w * s);
+  const h = Math.round(zone.h * s);
+  // Each tile sprite is ~152x138 in the sheet. Render as tileSize in virtual px.
+  const tilePx = Math.round(24 * s); // tile size on screen
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x0, y0, w, h);
+  ctx.clip();
+
+  for (let y = y0; y < y0 + h; y += tilePx) {
+    for (let x = x0; x < x0 + w; x += tilePx) {
+      ctx.drawImage(sheets.furniture, rect.x, rect.y, rect.w, rect.h, x, y, tilePx, tilePx);
+    }
+  }
+  ctx.restore();
+  return true;
+}
 
 export function drawWoodFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: number) {
+  if (tileFloorSprite(ctx, zone, s, 'floor-wood-light')) return;
   ctx.imageSmoothingEnabled = false;
   const plankW = 12 * s;
   const plankH = 4 * s;
@@ -49,6 +81,7 @@ export function drawWoodFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: numb
 }
 
 export function drawCarpetFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: number) {
+  if (tileFloorSprite(ctx, zone, s, 'floor-carpet')) return;
   ctx.imageSmoothingEnabled = false;
   const x0 = Math.round(zone.x * s);
   const y0 = Math.round(zone.y * s);
@@ -93,6 +126,7 @@ export function drawCarpetFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: nu
 }
 
 export function drawTileFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: number) {
+  if (tileFloorSprite(ctx, zone, s, 'floor-tile-beige')) return;
   ctx.imageSmoothingEnabled = false;
   const x0 = Math.round(zone.x * s);
   const y0 = Math.round(zone.y * s);
