@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pixel Claw</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+      color: #e0e0e0;
+    }
+    #app {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #connection-panel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #16213e;
+      border: 2px solid #0f3460;
+      border-radius: 8px;
+      padding: 32px;
+      min-width: 360px;
+      z-index: 100;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    #connection-panel.hidden { display: none; }
+    #connection-panel h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #e94560;
+      font-size: 20px;
+      letter-spacing: 2px;
+    }
+    #connection-panel label {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: #a0a0b0;
+    }
+    #connection-panel input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 16px;
+      background: #0f3460;
+      border: 1px solid #533483;
+      border-radius: 4px;
+      color: #e0e0e0;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+    #connection-panel input:focus {
+      outline: none;
+      border-color: #e94560;
+    }
+    #connect-btn {
+      width: 100%;
+      padding: 12px;
+      background: #e94560;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      letter-spacing: 2px;
+    }
+    #connect-btn:hover { background: #c73650; }
+    #connect-btn:disabled { background: #555; cursor: not-allowed; }
+    #status-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 32px;
+      background: rgba(22, 33, 62, 0.9);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 12px;
+      z-index: 50;
+      border-bottom: 1px solid #0f3460;
+    }
+    #status-bar .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+      background: #e94560;
+    }
+    #status-bar .dot.connected { background: #4ecca3; }
+    #status-bar .info { flex: 1; }
+    #status-bar .disconnect-btn {
+      background: none;
+      border: 1px solid #e94560;
+      color: #e94560;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    #detail-panel {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(22, 33, 62, 0.95);
+      border: 1px solid #0f3460;
+      border-radius: 6px;
+      padding: 16px;
+      min-width: 280px;
+      max-width: 360px;
+      font-size: 12px;
+      z-index: 50;
+      display: none;
+    }
+    #detail-panel h3 {
+      color: #e94560;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    #detail-panel .field {
+      margin-bottom: 4px;
+    }
+    #detail-panel .field span.label {
+      color: #a0a0b0;
+    }
+    #detail-panel .preview {
+      margin-top: 8px;
+      padding: 8px;
+      background: #0f3460;
+      border-radius: 4px;
+      max-height: 80px;
+      overflow: hidden;
+      font-size: 11px;
+      color: #c0c0d0;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    #conn-error {
+      color: #e94560;
+      font-size: 12px;
+      margin-top: 8px;
+      text-align: center;
+      min-height: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="canvas"></canvas>
+    <div id="status-bar" style="display:none;">
+      <div class="dot" id="status-dot"></div>
+      <div class="info">
+        <span id="status-text">Disconnected</span> · <span id="session-count">0 agents</span>
+      </div>
+      <button class="disconnect-btn" id="disconnect-btn">Disconnect</button>
+    </div>
+    <div id="connection-panel">
+      <h2>🦀 PIXEL CLAW</h2>
+      <label>Gateway URL</label>
+      <input id="gateway-url" type="text" placeholder="ws://localhost:18789" />
+      <label>Token</label>
+      <input id="gateway-token" type="password" placeholder="Your gateway token" />
+      <button id="connect-btn">CONNECT</button>
+      <div id="conn-error"></div>
+    </div>
+    <div id="detail-panel">
+      <h3 id="detail-name"></h3>
+      <div class="field"><span class="label">Session: </span><span id="detail-session"></span></div>
+      <div class="field"><span class="label">Activity: </span><span id="detail-activity"></span></div>
+      <div class="field"><span class="label">Model: </span><span id="detail-model"></span></div>
+      <div class="preview" id="detail-preview"></div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
