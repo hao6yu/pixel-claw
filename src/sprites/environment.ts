@@ -1,4 +1,4 @@
-import { darken } from '../utils';
+import { darken, lighten } from '../utils';
 import type { Zone } from '../types';
 
 export function drawWoodFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: number) {
@@ -26,11 +26,21 @@ export function drawWoodFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: numb
 
       ctx.fillStyle = base;
       ctx.fillRect(px, py, plankW, plankH);
+      // Top edge highlight (light from top-left)
+      ctx.fillStyle = lighten(base, 0.08);
+      ctx.fillRect(px, py, plankW, Math.round(s * 0.5));
+      // Grain lines
       ctx.fillStyle = darken(base, 0.06);
       ctx.fillRect(px, py + Math.round(s), plankW, Math.round(s));
       ctx.fillRect(px, py + Math.round(3 * s), plankW, Math.round(s * 0.5));
+      // Additional fine grain
+      ctx.fillStyle = darken(base, 0.03);
+      ctx.fillRect(px + Math.round(2 * s), py + Math.round(2 * s), Math.round(3 * s), Math.round(s * 0.5));
+      ctx.fillRect(px + Math.round(7 * s), py + Math.round(s), Math.round(2 * s), Math.round(s * 0.5));
+      // Right edge shadow (gap between planks)
       ctx.fillStyle = darken(base, 0.2);
       ctx.fillRect(px + plankW - Math.round(s * 0.5), py, Math.round(s * 0.5), plankH);
+      // Bottom edge shadow
       ctx.fillStyle = darken(base, 0.12);
       ctx.fillRect(px, py + plankH - Math.round(s * 0.5), plankW, Math.round(s * 0.5));
     }
@@ -64,12 +74,22 @@ export function drawCarpetFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: nu
     }
   }
 
-  // Darker border at edges
-  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  // Darker border at edges — multi-pixel gradient for depth
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
   ctx.fillRect(x0, y0, w, Math.round(s));
   ctx.fillRect(x0, y0 + h - Math.round(s), w, Math.round(s));
   ctx.fillRect(x0, y0, Math.round(s), h);
   ctx.fillRect(x0 + w - Math.round(s), y0, Math.round(s), h);
+  ctx.fillStyle = 'rgba(0,0,0,0.08)';
+  ctx.fillRect(x0 + Math.round(s), y0 + Math.round(s), w - Math.round(2 * s), Math.round(s));
+  ctx.fillRect(x0 + Math.round(s), y0 + h - Math.round(2 * s), w - Math.round(2 * s), Math.round(s));
+  ctx.fillRect(x0 + Math.round(s), y0 + Math.round(s), Math.round(s), h - Math.round(2 * s));
+  ctx.fillRect(x0 + w - Math.round(2 * s), y0 + Math.round(s), Math.round(s), h - Math.round(2 * s));
+  ctx.fillStyle = 'rgba(0,0,0,0.04)';
+  ctx.fillRect(x0 + Math.round(2 * s), y0 + Math.round(2 * s), w - Math.round(4 * s), Math.round(s));
+  ctx.fillRect(x0 + Math.round(2 * s), y0 + h - Math.round(3 * s), w - Math.round(4 * s), Math.round(s));
+  ctx.fillRect(x0 + Math.round(2 * s), y0 + Math.round(2 * s), Math.round(s), h - Math.round(4 * s));
+  ctx.fillRect(x0 + w - Math.round(3 * s), y0 + Math.round(2 * s), Math.round(s), h - Math.round(4 * s));
 }
 
 export function drawTileFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: number) {
@@ -89,7 +109,14 @@ export function drawTileFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: numb
   ctx.fillStyle = '#e8e0d0';
   ctx.fillRect(x0, y0, w, h);
 
-  // Grout lines
+  // Grout lines with shadow
+  ctx.fillStyle = '#c8c0b0';
+  for (let y = y0; y < y0 + h; y += tileSize) {
+    ctx.fillRect(x0, y + Math.round(s), w, Math.round(s * 0.5)); // shadow below grout
+  }
+  for (let x = x0; x < x0 + w; x += tileSize) {
+    ctx.fillRect(x + Math.round(s), y0, Math.round(s * 0.5), h); // shadow right of grout
+  }
   ctx.fillStyle = '#d0c8b8';
   for (let y = y0; y < y0 + h; y += tileSize) {
     ctx.fillRect(x0, y, w, Math.round(s));

@@ -162,6 +162,12 @@ export function drawCharacter(
   pxAt(ctx, bx, by, 4, 10 + bob, 8, 6, a.shirtColor, s);
   pxAt(ctx, bx, by, 10, 10 + bob, 2, 6, a.shirtShadow, s);
   pxAt(ctx, bx, by, 6, 10 + bob, 4, 1, lighten(a.shirtColor, 0.15), s);
+  // Clothing wrinkle lines
+  pxAt(ctx, bx, by, 5, 12 + bob, 3, 1, darken(a.shirtColor, 0.08), s);
+  pxAt(ctx, bx, by, 6, 14 + bob, 2, 1, darken(a.shirtColor, 0.06), s);
+  // Collar detail
+  pxAt(ctx, bx, by, 6, 10 + bob, 4, 1, lighten(a.shirtColor, 0.2), s);
+  pxAt(ctx, bx, by, 7, 10 + bob, 2, 1, darken(a.shirtColor, 0.05), s);
 
   // Arms
   if (isWalking) {
@@ -187,6 +193,12 @@ export function drawCharacter(
     pxAt(ctx, bx, by, 2, 16 + bob, 2, 1, a.skinColor, s);
     pxAt(ctx, bx, by, 12, 11 + bob, 2, 5, a.shirtShadow, s);
     pxAt(ctx, bx, by, 12, 16 + bob, 2, 1, a.skinShadow, s);
+  }
+
+  // Pants crease detail
+  if (!isWalking) {
+    pxAt(ctx, bx, by, 6, 17, 1, 1, darken(a.pantsColor, 0.08), s);
+    pxAt(ctx, bx, by, 9, 17, 1, 1, darken(a.pantsColor, 0.12), s);
   }
 
   // Pants / Legs
