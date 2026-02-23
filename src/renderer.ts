@@ -96,15 +96,14 @@ export class Renderer {
 
     // ── Layer 3: Wall-mounted furniture ──
     const L = LAYOUT;
-    // Lead office wall decorations (moved down to avoid top clipping)
-    drawBookshelf(ctx, 10 * s, 12 * s, s);
-    drawLandscapePainting(ctx, 56 * s, 14 * s, s);
+    // Lead office wall decorations (larger sprites need lower anchors)
+    drawBookshelf(ctx, 8 * s, 10 * s, s);
+    drawLandscapePainting(ctx, 66 * s, 14 * s, s);
 
-    // Main floor wall decorations (spread out and moved down)
-    drawBookshelf(ctx, (L.DIVIDER_X + 8) * s, 12 * s, s);
-    drawWhiteboard(ctx, (L.DIVIDER_X + 46) * s, 14 * s, s);
-    drawClock(ctx, (L.DIVIDER_X + 82) * s, 14 * s, s, this.globalTime);
-    drawBookshelf(ctx, (L.DIVIDER_X + 118) * s, 12 * s, s);
+    // Main floor wall decorations (bigger + properly spaced)
+    drawBookshelf(ctx, (L.DIVIDER_X + 8) * s, 10 * s, s);
+    drawWhiteboard(ctx, (L.DIVIDER_X + 46) * s, 12 * s, s);
+    drawClock(ctx, (L.DIVIDER_X + 100) * s, 14 * s, s, this.globalTime);
 
     // ── Collect all ground-level items for y-sort ──
     interface Drawable {
@@ -113,15 +112,15 @@ export class Renderer {
     }
     const drawables: Drawable[] = [];
 
-    // Break room furniture (re-anchored to reduce divider-edge clipping)
+    // Break room furniture (larger sprites + clearer spacing)
     drawables.push({
-      y: L.BREAK_START_Y + 18,
+      y: L.BREAK_START_Y + 26,
       draw: () => {
         const breakY = L.DIVIDER_Y + 12;
-        drawWaterCooler(ctx, L.BREAK_START_X * s, breakY * s, s);
-        drawVendingMachine(ctx, (L.BREAK_START_X + 14) * s, (breakY - 2) * s, s);
-        drawCoffeeMachine(ctx, (L.BREAK_START_X + 30) * s, (breakY + 2) * s, s);
-        drawCouch(ctx, (L.BREAK_START_X + 44) * s, (breakY + 18) * s, s);
+        drawWaterCooler(ctx, (L.BREAK_START_X + 2) * s, breakY * s, s);
+        drawVendingMachine(ctx, (L.BREAK_START_X + 22) * s, (breakY - 1) * s, s);
+        drawCoffeeMachine(ctx, (L.BREAK_START_X + 40) * s, (breakY + 6) * s, s);
+        drawCouch(ctx, (L.BREAK_START_X + 52) * s, (breakY + 24) * s, s);
       }
     });
 
