@@ -96,15 +96,15 @@ export class Renderer {
 
     // ── Layer 3: Wall-mounted furniture ──
     const L = LAYOUT;
-    // Lead office wall decorations
-    drawBookshelf(ctx, 8 * s, 4 * s, s);
-    drawLandscapePainting(ctx, 50 * s, 8 * s, s);
+    // Lead office wall decorations (moved down to avoid top clipping)
+    drawBookshelf(ctx, 10 * s, 12 * s, s);
+    drawLandscapePainting(ctx, 56 * s, 14 * s, s);
 
-    // Main floor wall decorations
-    drawBookshelf(ctx, (L.DIVIDER_X + 10) * s, 4 * s, s);
-    drawWhiteboard(ctx, (L.DIVIDER_X + 50) * s, 8 * s, s);
-    drawClock(ctx, (L.DIVIDER_X + 80) * s, 6 * s, s, this.globalTime);
-    drawBookshelf(ctx, (L.DIVIDER_X + 110) * s, 4 * s, s);
+    // Main floor wall decorations (spread out and moved down)
+    drawBookshelf(ctx, (L.DIVIDER_X + 8) * s, 12 * s, s);
+    drawWhiteboard(ctx, (L.DIVIDER_X + 46) * s, 14 * s, s);
+    drawClock(ctx, (L.DIVIDER_X + 82) * s, 14 * s, s, this.globalTime);
+    drawBookshelf(ctx, (L.DIVIDER_X + 118) * s, 12 * s, s);
 
     // ── Collect all ground-level items for y-sort ──
     interface Drawable {
@@ -113,14 +113,15 @@ export class Renderer {
     }
     const drawables: Drawable[] = [];
 
-    // Break room furniture (static)
+    // Break room furniture (re-anchored to reduce divider-edge clipping)
     drawables.push({
-      y: L.BREAK_START_Y,
+      y: L.BREAK_START_Y + 18,
       draw: () => {
-        drawWaterCooler(ctx, L.BREAK_START_X * s, (L.DIVIDER_Y + 6) * s, s);
-        drawVendingMachine(ctx, (L.BREAK_START_X + 14) * s, (L.DIVIDER_Y + 4) * s, s);
-        drawCoffeeMachine(ctx, (L.BREAK_START_X + 28) * s, (L.DIVIDER_Y + 8) * s, s);
-        drawCouch(ctx, (L.BREAK_START_X + 40) * s, (L.DIVIDER_Y + 20) * s, s);
+        const breakY = L.DIVIDER_Y + 12;
+        drawWaterCooler(ctx, L.BREAK_START_X * s, breakY * s, s);
+        drawVendingMachine(ctx, (L.BREAK_START_X + 14) * s, (breakY - 2) * s, s);
+        drawCoffeeMachine(ctx, (L.BREAK_START_X + 30) * s, (breakY + 2) * s, s);
+        drawCouch(ctx, (L.BREAK_START_X + 44) * s, (breakY + 18) * s, s);
       }
     });
 

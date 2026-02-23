@@ -2,12 +2,12 @@ import type { AgentState, Zone, ZoneType, Waypoint } from './types';
 
 // Virtual canvas dimensions
 const VW = 320;
-const VH = 200;
-const WALL_H = 28;
+const VH = 256;
+const WALL_H = 38;
 
-// Zone layout — all in virtual pixel coords
-const DIVIDER_X = 100; // vertical wall between left/right
-const DIVIDER_Y = 130; // horizontal wall between top/bottom
+// Zone layout — even split
+const DIVIDER_X = 160; // vertical wall — center
+const DIVIDER_Y = 134; // horizontal wall — center (accounting for wall height)
 
 export const ZONES: Record<ZoneType, Zone> = {
   'lead-office': {
@@ -40,8 +40,8 @@ export const LAYOUT = {
   DIVIDER_X,
   DIVIDER_Y,
   // Lead office desk position
-  LEAD_DESK_X: 30,
-  LEAD_DESK_Y: WALL_H + 20,
+  LEAD_DESK_X: 60,
+  LEAD_DESK_Y: WALL_H + 30,
   // Main floor desk grid
   MAIN_DESKS_PER_ROW: 3,
   MAIN_DESK_START_X: DIVIDER_X + 14,
