@@ -64,10 +64,17 @@ export class Gateway {
             id: uuid(),
             method: 'connect',
             params: {
+              minProtocol: 3,
+              maxProtocol: 3,
               role: 'operator',
-              client: { id: 'pixel-claw', mode: 'ui' },
+              scopes: ['operator.read'],
+              client: {
+                id: 'webchat-ui',
+                version: '0.1.0',
+                platform: navigator.platform || 'web',
+                mode: 'ui',
+              },
               auth: { token },
-              protocol: 3,
             },
           });
           return;

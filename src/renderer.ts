@@ -8,7 +8,7 @@ const DESK_SPACING_X = 28;
 const DESK_SPACING_Y = 36;
 const DESKS_PER_ROW = 5;
 const OFFICE_PADDING_X = 6;
-const OFFICE_PADDING_Y = 8;
+const OFFICE_PADDING_Y = 24;
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
@@ -63,7 +63,7 @@ export class Renderer {
     const offsetX = (this.canvas.width - totalW) / 2;
     return {
       x: offsetX + (OFFICE_PADDING_X + col * DESK_SPACING_X) * SCALE,
-      y: (OFFICE_PADDING_Y + row * DESK_SPACING_Y) * SCALE + 40,
+      y: (OFFICE_PADDING_Y + row * DESK_SPACING_Y) * SCALE + 60,
     };
   }
 
