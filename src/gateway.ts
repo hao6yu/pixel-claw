@@ -131,9 +131,55 @@ export class Gateway {
     });
   }
 
-  private startPolling(): void {
+  private async startPolling(): Promise<void> {
+    // Fetch configured agents first to create permanent characters
+    await this.fetchConfiguredAgents();
     this.pollSessions();
     this.pollTimer = setInterval(() => this.pollSessions(), 8_000);
+  }
+
+  private async fetchConfiguredAgents(): Promise<void> {
+    // Try agents.list WS method
+    let res = await this.request('agents.list');
+    console.log('[pixel-claw] agents.list response:', JSON.stringify(res).substring(0, 500));
+    if (res.ok && res.payload) {
+      const p = res.payload as Record<string, unknown>;
+      const agents = (p.agents ?? p) as Array<{ id: string; configured?: boolean; identity?: { name?: string; emoji?: string; avatar?: string } }>;
+      if (Array.isArray(agents)) {
+        for (const a of agents) {
+          if (a.id) {
+            this.state.addConfiguredAgent(a.id);
+            // Apply identity directly if available
+            if (a.identity) {
+              this.state.applyIdentity({
+                agentId: a.id,
+                name: a.identity.name,
+                emoji: a.identity.emoji,
+                avatar: a.identity.avatar,
+              });
+            } else {
+              this.fetchIdentity(a.id);
+            }
+          }
+        }
+        if (this.state.configuredAgentIds.size > 0) return;
+      }
+    }
+    // Fallback: try models.agents or config.get for agent list
+    res = await this.request('config.get', { path: 'agents.list' });
+    console.log('[pixel-claw] config.get agents.list:', JSON.stringify(res).substring(0, 500));
+    if (res.ok && res.payload) {
+      const p = res.payload as Record<string, unknown>;
+      const value = p.value as Array<{ id: string }> | undefined;
+      if (Array.isArray(value)) {
+        for (const a of value) {
+          if (a.id) {
+            this.state.addConfiguredAgent(a.id);
+            this.fetchIdentity(a.id);
+          }
+        }
+      }
+    }
   }
 
   private stopPolling(): void {
@@ -144,7 +190,7 @@ export class Gateway {
   }
 
   private async pollSessions(): Promise<void> {
-    const res = await this.request('sessions.list', { includeLastMessage: true, activeMinutes: 120 });
+    const res = await this.request('sessions.list', { includeLastMessage: true, activeMinutes: 30 });
     if (res.ok && res.payload) {
       const p = res.payload as Record<string, unknown>;
       // Gateway may return sessions at top level or nested

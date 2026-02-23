@@ -77,8 +77,10 @@ export interface SessionInfo {
   key: string;
   agentId?: string;
   label?: string;
+  displayName?: string;
   model?: string;
   state?: string;
   spawnedBy?: string;
   lastMessage?: string;
+  kind?: string;
 }

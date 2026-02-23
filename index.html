@@ -7,10 +7,10 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #1a1a2e;
+      background: #2a2520;
       font-family: 'Courier New', monospace;
       overflow: hidden;
-      color: #e0e0e0;
+      color: #e0d8c8;
     }
     #app {
       width: 100vw;
@@ -27,8 +27,8 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: #16213e;
-      border: 2px solid #0f3460;
+      background: #3a3028;
+      border: 2px solid #5a4a38;
       border-radius: 8px;
       padding: 32px;
       min-width: 360px;
@@ -39,7 +39,7 @@
     #connection-panel h2 {
       text-align: center;
       margin-bottom: 20px;
-      color: #e94560;
+      color: #e0a050;
       font-size: 20px;
       letter-spacing: 2px;
     }
@@ -53,21 +53,21 @@
       width: 100%;
       padding: 10px;
       margin-bottom: 16px;
-      background: #0f3460;
-      border: 1px solid #533483;
+      background: #2a2218;
+      border: 1px solid #5a4a38;
       border-radius: 4px;
-      color: #e0e0e0;
+      color: #e0d8c8;
       font-family: 'Courier New', monospace;
       font-size: 14px;
     }
     #connection-panel input:focus {
       outline: none;
-      border-color: #e94560;
+      border-color: #e0a050;
     }
     #connect-btn {
       width: 100%;
       padding: 12px;
-      background: #e94560;
+      background: #c07830;
       border: none;
       border-radius: 4px;
       color: white;
@@ -77,7 +77,7 @@
       cursor: pointer;
       letter-spacing: 2px;
     }
-    #connect-btn:hover { background: #c73650; }
+    #connect-btn:hover { background: #a06020; }
     #connect-btn:disabled { background: #555; cursor: not-allowed; }
     #status-bar {
       position: absolute;
@@ -85,26 +85,26 @@
       left: 0;
       right: 0;
       height: 32px;
-      background: rgba(22, 33, 62, 0.9);
+      background: rgba(42, 37, 32, 0.92);
       display: flex;
       align-items: center;
       padding: 0 12px;
       font-size: 12px;
       z-index: 50;
-      border-bottom: 1px solid #0f3460;
+      border-bottom: 1px solid #5a4a38;
     }
     #status-bar .dot {
       width: 8px; height: 8px;
       border-radius: 50%;
       margin-right: 8px;
-      background: #e94560;
+      background: #c06040;
     }
     #status-bar .dot.connected { background: #4ecca3; }
     #status-bar .info { flex: 1; }
     #status-bar .disconnect-btn {
       background: none;
-      border: 1px solid #e94560;
-      color: #e94560;
+      border: 1px solid #c07830;
+      color: #c07830;
       padding: 2px 8px;
       border-radius: 3px;
       font-family: 'Courier New', monospace;
@@ -115,8 +115,8 @@
       position: absolute;
       bottom: 12px;
       right: 12px;
-      background: rgba(22, 33, 62, 0.95);
-      border: 1px solid #0f3460;
+      background: rgba(42, 37, 32, 0.95);
+      border: 1px solid #5a4a38;
       border-radius: 6px;
       padding: 16px;
       min-width: 280px;
@@ -126,7 +126,7 @@
       display: none;
     }
     #detail-panel h3 {
-      color: #e94560;
+      color: #e0a050;
       margin-bottom: 8px;
       font-size: 14px;
     }
@@ -139,7 +139,7 @@
     #detail-panel .preview {
       margin-top: 8px;
       padding: 8px;
-      background: #0f3460;
+      background: #2a2218;
       border-radius: 4px;
       max-height: 80px;
       overflow: hidden;
@@ -149,7 +149,7 @@
       word-break: break-all;
     }
     #conn-error {
-      color: #e94560;
+      color: #c07830;
       font-size: 12px;
       margin-top: 8px;
       text-align: center;

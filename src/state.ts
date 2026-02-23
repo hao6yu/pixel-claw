@@ -26,9 +26,33 @@ function extractAgentId(sessionKey: string): string {
 
 export class StateManager {
   agents: Map<string, AgentState> = new Map();
+  configuredAgentIds: Set<string> = new Set();
   identityCache: Map<string, AgentIdentity> = new Map();
   private deskCounter = 0;
   onIdentityNeeded?: (agentId: string) => void;
+
+  // Add a configured agent as a permanent character (always visible)
+  addConfiguredAgent(agentId: string): void {
+    this.configuredAgentIds.add(agentId);
+    // Create a permanent agent keyed by agentId
+    const permanentKey = `configured:${agentId}`;
+    if (!this.agents.has(permanentKey)) {
+      const deskIndex = this.deskCounter++;
+      this.agents.set(permanentKey, {
+        sessionKey: permanentKey,
+        agentId,
+        label: agentId,
+        activity: 'idle',
+        lastActiveAt: Date.now(),
+        isSubAgent: false,
+        x: 0, y: 0,
+        deskIndex,
+        color: hashColor(agentId),
+        animFrame: 0,
+        animTimer: 0,
+      });
+    }
+  }
 
   getOrCreateAgent(sessionKey: string, agentId?: string, spawnedBy?: string): AgentState {
     let agent = this.agents.get(sessionKey);
@@ -76,7 +100,19 @@ export class StateManager {
   }
 
   handleChatEvent(payload: ChatEventPayload): void {
-    const agent = this.getOrCreateAgent(payload.sessionKey);
+    // Try to find the agent by session key (could be a configured agent or sub-agent)
+    let agent = this.findAgentBySessionKey(payload.sessionKey);
+    if (!agent) {
+      // Check if it belongs to a configured agent
+      const agentId = extractAgentId(payload.sessionKey);
+      if (this.configuredAgentIds.has(agentId)) {
+        agent = this.agents.get(`configured:${agentId}`);
+      }
+    }
+    if (!agent) {
+      // Unknown session — might be a sub-agent, create temporarily
+      agent = this.getOrCreateAgent(payload.sessionKey);
+    }
     agent.runId = payload.runId;
     agent.lastActiveAt = Date.now();
 
@@ -124,37 +160,56 @@ export class StateManager {
   }
 
   updateFromSessions(sessions: SessionInfo[]): void {
-    const seen = new Set<string>();
+    const activeSubKeys = new Set<string>();
+
     for (const s of sessions) {
-      seen.add(s.key);
-      const agent = this.getOrCreateAgent(s.key, s.agentId, s.spawnedBy);
-      if (s.label) agent.label = s.label;
-      if (s.model) agent.model = s.model;
-      if (s.spawnedBy) agent.spawnedBy = s.spawnedBy;
-      if (s.lastMessage) agent.lastMessage = s.lastMessage;
-      // Update agentId if provided and different
-      if (s.agentId && s.agentId !== agent.agentId) {
-        agent.agentId = s.agentId;
-        agent.color = hashColor(s.agentId);
-        const identity = this.identityCache.get(s.agentId);
-        if (identity) {
-          agent.identity = identity;
-          if (identity.name) agent.label = identity.name;
-        } else {
-          this.onIdentityNeeded?.(s.agentId);
+      const agentId = s.agentId || extractAgentId(s.key);
+
+      // If this session belongs to a configured agent, map activity onto the permanent character
+      if (this.configuredAgentIds.has(agentId)) {
+        const permanentKey = `configured:${agentId}`;
+        const agent = this.agents.get(permanentKey);
+        if (agent) {
+          agent.lastActiveAt = Date.now();
+          if (s.model) agent.model = s.model;
+          if (s.lastMessage) agent.lastMessage = s.lastMessage;
+          // Map the real session key so chat events can find it
+          agent.sessionKey = s.key;
         }
+        continue;
       }
-      // Restore label from identity if not overridden by session label
-      if (!s.label && agent.identity?.name) {
-        agent.label = agent.identity.name;
+
+      // Otherwise it's a sub-agent — show temporarily
+      if (s.spawnedBy || s.key.includes(':subagent:')) {
+        activeSubKeys.add(s.key);
+        const agent = this.getOrCreateAgent(s.key, agentId, s.spawnedBy);
+        agent.isSubAgent = true;
+        if (s.label) agent.label = s.label;
+        else if (s.displayName) agent.label = s.displayName;
+        if (s.model) agent.model = s.model;
+        if (s.lastMessage) agent.lastMessage = s.lastMessage;
+        agent.lastActiveAt = Date.now();
       }
     }
-    // Remove stale agents
-    for (const [key, agent] of this.agents) {
-      if (!seen.has(key) && Date.now() - agent.lastActiveAt > 60_000) {
+
+    // Remove stale sub-agents not in the session list
+    for (const [key] of this.agents) {
+      if (key.startsWith('configured:')) continue; // never remove permanent agents
+      if (!activeSubKeys.has(key)) {
         this.agents.delete(key);
       }
     }
+  }
+
+  private findAgentBySessionKey(sessionKey: string): AgentState | undefined {
+    // Direct match
+    const direct = this.agents.get(sessionKey);
+    if (direct) return direct;
+    // Check configured agents whose sessionKey was mapped
+    for (const agent of this.agents.values()) {
+      if (agent.sessionKey === sessionKey) return agent;
+    }
+    return undefined;
   }
 
   // Get main agents (not sub-agents)
