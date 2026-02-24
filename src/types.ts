@@ -33,6 +33,8 @@ export interface AgentIdentity {
   avatar?: string;
 }
 
+export type FacingDirection = 'up' | 'down' | 'left' | 'right';
+
 export interface AgentState {
   sessionKey: string;
   agentId: string;
@@ -62,6 +64,10 @@ export interface AgentState {
   previousActivity?: AgentActivity;
   accessory?: number; // 0=none, 1=glasses, 2=headphones, 3=hat
   spawnAlpha?: number; // for sub-agent fade in/out
+  facing?: FacingDirection;
+  assignedSeatId?: string;
+  seated?: boolean;
+  renderLayerY?: number;
 }
 
 export interface WsRequest {

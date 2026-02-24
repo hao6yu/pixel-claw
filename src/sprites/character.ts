@@ -1,9 +1,8 @@
-import type { AgentActivity } from '../types';
+import type { AgentActivity, FacingDirection } from '../types';
 import { hashNum } from '../utils';
 
 const FRAME_W = 16;
 const FRAME_H = 32;
-const DOWN_ROW_Y = 0;
 
 const PALETTE_COUNT = 6;
 const CHARACTER_SHEETS = Array.from({ length: PALETTE_COUNT }, (_, i) => `/assets/pixel-agents/characters/char_${i}.png`);
@@ -30,18 +29,22 @@ function ensureSheet(index: number): HTMLImageElement | null {
 
 function getPaletteIndex(agentId: string): number {
   const id = agentId.toLowerCase();
-
-  // Name-locked cast mapping (3 male + 1 female)
-  if (id.includes('cortana') || id.includes('02-threat-hunter') || id.includes('threat-hunter')) return 4; // female
-  if (id.includes('chief') || id.includes('01-tech-lead') || id.includes('tech-lead')) return 1; // male
-  if (id.includes('ghost') || id.includes('03-lore-keeper') || id.includes('lore-keeper')) return 5; // male (COD Ghost style: masked/light tactical look)
-  if (id.includes('max') || id.includes('main') || id === 'default') return 0; // male
-
-  // Fallback for unknown agents
+  if (id.includes('cortana') || id.includes('02-threat-hunter') || id.includes('threat-hunter')) return 4;
+  if (id.includes('chief') || id.includes('01-tech-lead') || id.includes('tech-lead')) return 1;
+  if (id.includes('ghost') || id.includes('03-lore-keeper') || id.includes('lore-keeper')) return 5;
+  if (id.includes('max') || id.includes('main') || id === 'default') return 0;
   return Math.abs(hashNum(agentId)) % PALETTE_COUNT;
 }
 
-function getFrameX(activity: AgentActivity, globalTime: number): number {
+function getFrameX(activity: AgentActivity, globalTime: number, seated: boolean): number {
+  if (seated) {
+    if (activity === 'coding' || activity === 'browsing' || activity === 'running-cmd' || activity === 'communicating') {
+      return (Math.floor(globalTime * 5) % 2 === 0 ? 3 : 4) * FRAME_W;
+    }
+    if (activity === 'thinking') return 6 * FRAME_W;
+    return 1 * FRAME_W;
+  }
+
   switch (activity) {
     case 'walking': {
       const walk = Math.floor(globalTime * 8) % 4;
@@ -62,6 +65,12 @@ function getFrameX(activity: AgentActivity, globalTime: number): number {
   }
 }
 
+function getRowY(facing: FacingDirection): number {
+  if (facing === 'up') return FRAME_H * 2;
+  if (facing === 'left' || facing === 'right') return FRAME_H;
+  return 0;
+}
+
 export function drawCharacter(
   ctx: CanvasRenderingContext2D,
   baseX: number, baseY: number,
@@ -73,6 +82,7 @@ export function drawCharacter(
   globalTime: number = 0,
   _accessoryOverride?: number,
   seated: boolean = false,
+  facing: FacingDirection = 'down',
 ) {
   ctx.imageSmoothingEnabled = false;
 
@@ -80,35 +90,29 @@ export function drawCharacter(
   const sheet = ensureSheet(paletteIndex);
   if (!sheet) return;
 
-  const frameX = getFrameX(activity, globalTime);
+  const frameX = getFrameX(activity, globalTime, seated);
+  const rowY = getRowY(facing);
   const bob = activity === 'walking' ? Math.round(Math.abs(Math.sin(globalTime * 12)) * scale) : 0;
+  const drawX = Math.round(baseX);
+  const drawY = Math.round(baseY - bob);
 
-  if (seated) {
-    // Seated illusion: render upper body only and place lower behind desk/chair.
-    const srcH = 22;
-    const seatDrop = Math.round(8 * scale);
-    ctx.drawImage(
-      sheet,
-      frameX,
-      DOWN_ROW_Y,
-      FRAME_W,
-      srcH,
-      Math.round(baseX),
-      Math.round(baseY + seatDrop),
-      Math.round(FRAME_W * scale),
-      Math.round(srcH * scale),
-    );
+  if (facing === 'right') {
+    ctx.save();
+    ctx.translate(drawX + Math.round(FRAME_W * scale), 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(sheet, frameX, rowY, FRAME_W, FRAME_H, 0, drawY, Math.round(FRAME_W * scale), Math.round(FRAME_H * scale));
+    ctx.restore();
     return;
   }
 
   ctx.drawImage(
     sheet,
     frameX,
-    DOWN_ROW_Y,
+    rowY,
     FRAME_W,
     FRAME_H,
-    Math.round(baseX),
-    Math.round(baseY - bob),
+    drawX,
+    drawY,
     Math.round(FRAME_W * scale),
     Math.round(FRAME_H * scale),
   );

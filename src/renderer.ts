@@ -195,7 +195,7 @@ export class Renderer {
       const agentScale = agent.isSubAgent ? s * SUB_SCALE_FACTOR : s;
       const charY = agent.y;
       drawables.push({
-        y: charY + 20, // sort by feet position
+        y: agent.renderLayerY ?? (charY + 20),
         draw: () => {
           ctx.save();
           if (agent.isSubAgent && agent.spawnAlpha !== undefined && agent.spawnAlpha < 1) {
@@ -227,10 +227,7 @@ export class Renderer {
             );
           }
 
-          const seated =
-            (agent.zone === 'lead-office' || agent.zone === 'main-floor' || agent.zone === 'sub-agent-zone') &&
-            agent.activity !== 'walking' &&
-            agent.activity !== 'sleeping';
+          const seated = !!agent.seated;
 
           drawCharacter(
             ctx,
@@ -244,6 +241,7 @@ export class Renderer {
             this.globalTime,
             agent.accessory,
             seated,
+            agent.facing,
           );
 
           ctx.restore();
