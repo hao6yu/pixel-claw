@@ -11,7 +11,7 @@ import {
 } from './sprites/index';
 import { VS, pixelFont } from './visual-system';
 
-const SUB_SCALE_FACTOR = 2 / 3;
+const SUB_SCALE_FACTOR = 0.8;
 const SHOW_AGENT_LABELS = false;
 
 export class Renderer {

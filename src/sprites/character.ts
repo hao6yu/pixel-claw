@@ -57,7 +57,7 @@ function drawCharacterSprite(
 
   const char = getCharName(agentId);
 
-  const walkFrame = Math.floor(globalTime * 8) % 2;
+  const walkFrame = Math.floor(globalTime * 10) % 2;
   const actionKey = activity === 'walking'
     ? `${char}-${walkFrame === 0 ? 'walk1' : 'walk2'}`
     : activity === 'sleeping'
@@ -78,9 +78,9 @@ function drawCharacterSprite(
 
   const source = useAction ? sheets.charsAction : sheets.charsIdle;
 
-  // 256x512 source cells rendered as ~16x24 virtual px for in-game scale consistency.
-  const destW = 16 * scale;
-  const destH = 24 * scale;
+  // 256x512 source cells rendered larger for readability.
+  const destW = 20 * scale;
+  const destH = 30 * scale;
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(
     source,
@@ -88,8 +88,8 @@ function drawCharacterSprite(
     rect.y,
     rect.w,
     rect.h,
-    Math.round(baseX),
-    Math.round(baseY),
+    baseX,
+    baseY,
     Math.round(destW),
     Math.round(destH),
   );

@@ -64,7 +64,7 @@ export const LAYOUT = {
 };
 
 const IDLE_BREAK_THRESHOLD = 30_000; // 30 seconds (for testing, bump to 5*60_000 for prod)
-const WALK_SPEED = 30; // virtual pixels per second
+const WALK_SPEED = 20; // virtual pixels per second (slower for smoother retro movement)
 
 export class ZoneManager {
   private leadAgentId: string | null = null;
