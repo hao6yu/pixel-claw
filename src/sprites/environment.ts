@@ -1,53 +1,9 @@
 import { darken, lighten } from '../utils';
 import type { Zone } from '../types';
 import { VS } from '../visual-system';
-import { getSheets } from '../sprite-loader';
-
-function drawDonargTiledFill(
-  ctx: CanvasRenderingContext2D,
-  zone: Zone,
-  s: number,
-  variants: Array<{ c: number; r: number }>,
-) {
-  const sheets = getSheets();
-  if (!sheets?.donargOffice) return false;
-
-  const tileSize = Math.round(16 * s);
-  const x0 = Math.round(zone.x * s);
-  const y0 = Math.round(zone.y * s);
-  const w = Math.round(zone.w * s);
-  const h = Math.round(zone.h * s);
-  const cols = Math.ceil(w / tileSize);
-  const rows = Math.ceil(h / tileSize);
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(x0, y0, w, h);
-  ctx.clip();
-  for (let yy = 0; yy < rows; yy++) {
-    for (let xx = 0; xx < cols; xx++) {
-      const v = variants[(xx + yy) % variants.length];
-      ctx.drawImage(
-        sheets.donargOffice,
-        v.c * 16,
-        v.r * 16,
-        16,
-        16,
-        x0 + xx * tileSize,
-        y0 + yy * tileSize,
-        tileSize,
-        tileSize,
-      );
-    }
-  }
-  ctx.restore();
-  return true;
-}
 
 export function drawWoodFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: number) {
   ctx.imageSmoothingEnabled = false;
-  if (drawDonargTiledFill(ctx, zone, s, [{ c: 0, r: 0 }, { c: 1, r: 0 }, { c: 0, r: 1 }, { c: 1, r: 1 }])) return;
-
   const plankW = 12 * s;
   const plankH = 4 * s;
   const baseColors = ['#8f6b47', '#7f5f3f', '#9b7652', '#74573b'];
@@ -77,8 +33,6 @@ export function drawWoodFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: numb
 }
 
 export function drawCarpetFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: number) {
-  if (drawDonargTiledFill(ctx, zone, s, [{ c: 0, r: 8 }, { c: 1, r: 8 }, { c: 0, r: 9 }, { c: 1, r: 9 }])) return;
-
   const x0 = Math.round(zone.x * s);
   const y0 = Math.round(zone.y * s);
   const w = Math.round(zone.w * s);
@@ -94,8 +48,6 @@ export function drawCarpetFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: nu
 }
 
 export function drawTileFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: number) {
-  if (drawDonargTiledFill(ctx, zone, s, [{ c: 2, r: 8 }, { c: 3, r: 8 }, { c: 2, r: 9 }, { c: 3, r: 9 }])) return;
-
   const x0 = Math.round(zone.x * s);
   const y0 = Math.round(zone.y * s);
   const w = Math.round(zone.w * s);
@@ -110,21 +62,6 @@ export function drawTileFloor(ctx: CanvasRenderingContext2D, zone: Zone, s: numb
 
 export function drawWall(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, wallH: number, s: number) {
   const px = Math.round(x * s), py = Math.round(y * s), pw = Math.round(w * s), ph = Math.round(wallH * s);
-  const sheets = getSheets();
-  if (sheets?.donargOffice) {
-    const tileSize = Math.round(16 * s);
-    for (let yy = py; yy < py + ph; yy += tileSize) {
-      for (let xx = px; xx < px + pw; xx += tileSize) {
-        const c = ((xx / Math.max(1, tileSize)) % 2) ? 7 : 6;
-        const r = ((yy / Math.max(1, tileSize)) % 2) ? 1 : 0;
-        ctx.drawImage(sheets.donargOffice, c * 16, r * 16, 16, 16, xx, yy, tileSize, tileSize);
-      }
-    }
-    ctx.fillStyle = 'rgba(0,0,0,0.08)';
-    ctx.fillRect(px, py + ph - Math.round(2 * s), pw, Math.round(2 * s));
-    return;
-  }
-
   ctx.fillStyle = VS.palette.wall;
   ctx.fillRect(px, py, pw, ph);
   ctx.fillStyle = VS.palette.wallTop;
@@ -149,19 +86,6 @@ export function drawInteriorWall(ctx: CanvasRenderingContext2D, x: number, y: nu
 
 function drawWallSection(ctx: CanvasRenderingContext2D, px: number, py: number, pw: number, ph: number, s: number) {
   if (pw <= 0) return;
-  const sheets = getSheets();
-  if (sheets?.donargOffice) {
-    const tileSize = Math.round(16 * s);
-    for (let yy = py; yy < py + ph; yy += tileSize) {
-      for (let xx = px; xx < px + pw; xx += tileSize) {
-        const c = ((xx / Math.max(1, tileSize)) % 2) ? 7 : 6;
-        const r = ((yy / Math.max(1, tileSize)) % 2) ? 1 : 0;
-        ctx.drawImage(sheets.donargOffice, c * 16, r * 16, 16, 16, xx, yy, tileSize, tileSize);
-      }
-    }
-    return;
-  }
-
   ctx.fillStyle = VS.palette.wall;
   ctx.fillRect(px, py, pw, ph);
   ctx.fillStyle = VS.palette.wallTop;
