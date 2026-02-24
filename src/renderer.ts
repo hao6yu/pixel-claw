@@ -14,6 +14,8 @@ import { VS, pixelFont } from './visual-system';
 const SUB_SCALE_FACTOR = 0.8;
 const SHOW_AGENT_LABELS = false;
 const USE_DONARG_BACKGROUND = true;
+const DONARG_BG_SRC = '/assets/donarg/office-level-4.png';
+const DONARG_CROP = { x: 160, y: 120, w: 320, h: 256 };
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
@@ -37,7 +39,7 @@ export class Renderer {
     if (USE_DONARG_BACKGROUND) {
       const img = new Image();
       img.onload = () => { this.donargBg = img; };
-      img.src = '/assets/donarg/office-level-1.png';
+      img.src = DONARG_BG_SRC;
     }
     window.addEventListener('resize', () => this.resize());
     canvas.addEventListener('click', (e) => this.handleClick(e));
@@ -85,8 +87,18 @@ export class Renderer {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (USE_DONARG_BACKGROUND && this.donargBg) {
-      // Source is 320x288; crop 16px off the bottom to fit 320x256 scene.
-      ctx.drawImage(this.donargBg, 0, 0, 320, 256, 0, 0, canvas.width, canvas.height);
+      // Curated crop from purchased Donarg office map (manager office + workspace + break + meeting).
+      ctx.drawImage(
+        this.donargBg,
+        DONARG_CROP.x,
+        DONARG_CROP.y,
+        DONARG_CROP.w,
+        DONARG_CROP.h,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      );
     }
 
     // ── Layer 1: Floors ──

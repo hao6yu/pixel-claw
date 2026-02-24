@@ -5,9 +5,9 @@ const VW = 320;
 const VH = 256;
 const WALL_H = 38;
 
-// Zone layout — even split
-const DIVIDER_X = 160; // vertical wall — center
-const DIVIDER_Y = 134; // horizontal wall — center (accounting for wall height)
+// Zone layout tuned to Donarg office composition
+const DIVIDER_X = 156;
+const DIVIDER_Y = 138;
 
 export const ZONES: Record<ZoneType, Zone> = {
   'lead-office': {
@@ -39,25 +39,25 @@ export const LAYOUT = {
   WALL_H,
   DIVIDER_X,
   DIVIDER_Y,
-  // Lead office desk position
-  LEAD_DESK_X: 60,
-  LEAD_DESK_Y: WALL_H + 30,
-  // Main floor desk grid
+  // Manager office (Max) in a private room
+  LEAD_DESK_X: 54,
+  LEAD_DESK_Y: 78,
+  // Open office workspace (main agents)
   MAIN_DESKS_PER_ROW: 3,
-  MAIN_DESK_START_X: DIVIDER_X + 14,
-  MAIN_DESK_START_Y: WALL_H + 10,
-  MAIN_DESK_SPACING_X: 46,
-  MAIN_DESK_SPACING_Y: 44,
-  // Break room positions
-  BREAK_START_X: 8,
-  BREAK_START_Y: DIVIDER_Y + 10,
-  BREAK_SPACING_X: 16,
-  // Sub-agent zone
-  SUB_START_X: DIVIDER_X + 10,
-  SUB_START_Y: DIVIDER_Y + 10,
-  SUB_SPACING_X: 22,
-  SUB_PER_ROW: 6,
-  SUB_SPACING_Y: 30,
+  MAIN_DESK_START_X: 176,
+  MAIN_DESK_START_Y: 74,
+  MAIN_DESK_SPACING_X: 38,
+  MAIN_DESK_SPACING_Y: 30,
+  // Break room/lounge positions
+  BREAK_START_X: 36,
+  BREAK_START_Y: 198,
+  BREAK_SPACING_X: 20,
+  // Meeting area (sub-agents gather here)
+  SUB_START_X: 198,
+  SUB_START_Y: 188,
+  SUB_SPACING_X: 20,
+  SUB_PER_ROW: 5,
+  SUB_SPACING_Y: 24,
   // Doorway in the vertical wall between lead office and main floor
   DOORWAY_Y: WALL_H + 40,
   DOORWAY_H: 20,
