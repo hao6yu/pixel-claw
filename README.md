@@ -38,9 +38,16 @@ npm run build
 
 Output goes to `dist/`.
 
-## Retro Visual System
+## Visual Style
 
-Pixel Claw now uses a unified FC/NES-inspired procedural art style (no runtime atlas slicing), so furniture, floors, characters, effects, and UI all share the same palette and chunky silhouette language.
+Pixel Claw uses a Donarg office board backdrop plus Pixel Agents-style character rendering.
+
+### Character pipeline attribution
+
+Character motion feel and frame layout are adapted from the MIT-licensed Pixel Agents project:
+
+- https://github.com/pablodelucca/pixel-agents
+- See `ASSET_LICENSES.md` for details.
 
 ### Design knobs
 
@@ -50,10 +57,8 @@ Pixel Claw now uses a unified FC/NES-inspired procedural art style (no runtime a
 - `src/renderer.ts`
   - `SUB_SCALE_FACTOR`: child-agent size ratio
   - global canvas scale clamp in `resize()`
-- `src/sprites/environment.ts`
-  - procedural floor tile/plank sizes and wall trim thickness
 - `src/sprites/character.ts`
-  - procedural character animation + accessory styling
+  - Pixel Agents-based sprite frame selection for activity states
 - `src/sprites/effects.ts`
   - thought/status bubble shape, size, and text truncation
 

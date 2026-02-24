@@ -1,19 +1,19 @@
 # Asset Licenses
 
-## Character sprites (`public/chars-idle.png`, `public/chars-action.png`)
+## Pixel Agents character pipeline assets (`public/assets/pixel-agents/characters/char_*.png`)
 
-These sheets are custom derivative edits based on:
+Character visuals and animation frame layout are reused from:
 
-- **Kenney – Roguelike Characters**
-- Source page: https://kenney.nl/assets/roguelike-characters
-- Direct download used: https://kenney.nl/media/pages/assets/roguelike-characters/cc364edf00-1729196490/kenney_roguelike-characters.zip
-- License: **Creative Commons CC0 1.0 Universal**
-  - https://creativecommons.org/publicdomain/zero/1.0/
+- **pablodelucca/pixel-agents**
+- Source: https://github.com/pablodelucca/pixel-agents
+- License: **MIT**
+- Upstream files referenced:
+  - `webview-ui/public/assets/characters/char_0.png` ... `char_5.png`
+  - `webview-ui/src/office/engine/characters.ts` (state/frame behavior reference)
+  - `webview-ui/src/office/sprites/spriteData.ts` (sprite format + frame layout reference)
 
-### What was modified
+### Integration notes
 
-- Extracted base character tiles from Kenney's sprite sheet
-- Reworked into project-specific 4-character cast (Max, Chief, Cortana, Ghost)
-- Added state-specific variants for idle / typing / thinking / walk1 / walk2 / sleeping
-- Applied per-character palette tuning for project style consistency
-- Packed into the project's existing `4 cols × 3 rows` atlas layout for compatibility
+- Pixel Claw now renders agents from Pixel Agents character sheets directly.
+- Existing app state mapping remains (`idle`, `coding/typing`, `thinking`, `walking`, `sleeping`).
+- Sleeping remains represented via idle pose + existing Zzz effect to preserve app behavior.
