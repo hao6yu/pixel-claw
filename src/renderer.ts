@@ -13,6 +13,7 @@ import { VS, pixelFont } from './visual-system';
 
 const SUB_SCALE_FACTOR = 0.8;
 const SHOW_AGENT_LABELS = false;
+const USE_DONARG_BACKGROUND = true;
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
@@ -23,6 +24,7 @@ export class Renderer {
   private running = false;
   private globalTime = 0;
   private scale = 3;
+  private donargBg: HTMLImageElement | null = null;
   selectedAgent: AgentState | null = null;
   onAgentClick?: (agent: AgentState | null) => void;
 
@@ -32,6 +34,11 @@ export class Renderer {
     this.state = state;
     this.zones = new ZoneManager();
     this.resize();
+    if (USE_DONARG_BACKGROUND) {
+      const img = new Image();
+      img.onload = () => { this.donargBg = img; };
+      img.src = '/assets/donarg/office-level-1.png';
+    }
     window.addEventListener('resize', () => this.resize());
     canvas.addEventListener('click', (e) => this.handleClick(e));
   }
@@ -77,35 +84,34 @@ export class Renderer {
     ctx.fillStyle = VS.palette.bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // ── Layer 1: Floors ──
-    for (const zone of Object.values(ZONES)) {
-      drawFloorForZone(ctx, zone, s);
+    if (USE_DONARG_BACKGROUND && this.donargBg) {
+      // Source is 320x288; crop 16px off the bottom to fit 320x256 scene.
+      ctx.drawImage(this.donargBg, 0, 0, 320, 256, 0, 0, canvas.width, canvas.height);
     }
 
-    // ── Layer 2: Walls ──
-    // Back wall (full width)
-    drawWall(ctx, 0, 0, LAYOUT.VW, LAYOUT.WALL_H, s);
+    // ── Layer 1: Floors ──
+    if (!USE_DONARG_BACKGROUND || !this.donargBg) {
+      for (const zone of Object.values(ZONES)) {
+        drawFloorForZone(ctx, zone, s);
+      }
+    }
 
-    // Vertical interior wall between lead office and main floor (top half)
-    drawInteriorWall(ctx, LAYOUT.DIVIDER_X, LAYOUT.WALL_H, 2, LAYOUT.DIVIDER_Y - LAYOUT.WALL_H, s,
-      LAYOUT.DIVIDER_X, 0); // no doorway in vertical — we handle it differently
-
-    // Actually, draw vertical wall as a proper wall with doorway
-    this.drawVerticalWall(ctx, s);
-
-    // Horizontal interior wall between top and bottom zones
-    drawInteriorWall(ctx, 0, LAYOUT.DIVIDER_Y, LAYOUT.VW, 2, s);
-
-    // ── Layer 3: Wall-mounted furniture ──
     const L = LAYOUT;
-    // Lead office wall decorations (intentional spacing and bigger silhouettes)
-    drawBookshelf(ctx, 10 * s, 8 * s, s);
-    drawLandscapePainting(ctx, 72 * s, 10 * s, s);
+    if (!USE_DONARG_BACKGROUND || !this.donargBg) {
+      // ── Layer 2: Walls ──
+      drawWall(ctx, 0, 0, LAYOUT.VW, LAYOUT.WALL_H, s);
+      drawInteriorWall(ctx, LAYOUT.DIVIDER_X, LAYOUT.WALL_H, 2, LAYOUT.DIVIDER_Y - LAYOUT.WALL_H, s,
+        LAYOUT.DIVIDER_X, 0);
+      this.drawVerticalWall(ctx, s);
+      drawInteriorWall(ctx, 0, LAYOUT.DIVIDER_Y, LAYOUT.VW, 2, s);
 
-    // Main floor wall decorations
-    drawBookshelf(ctx, (L.DIVIDER_X + 8) * s, 8 * s, s);
-    drawWhiteboard(ctx, (L.DIVIDER_X + 50) * s, 8 * s, s);
-    drawClock(ctx, (L.DIVIDER_X + 124) * s, 10 * s, s, this.globalTime);
+      // ── Layer 3: Wall-mounted furniture ──
+      drawBookshelf(ctx, 10 * s, 8 * s, s);
+      drawLandscapePainting(ctx, 72 * s, 10 * s, s);
+      drawBookshelf(ctx, (L.DIVIDER_X + 8) * s, 8 * s, s);
+      drawWhiteboard(ctx, (L.DIVIDER_X + 50) * s, 8 * s, s);
+      drawClock(ctx, (L.DIVIDER_X + 124) * s, 10 * s, s, this.globalTime);
+    }
 
     // ── Collect all ground-level items for y-sort ──
     interface Drawable {
@@ -114,59 +120,61 @@ export class Renderer {
     }
     const drawables: Drawable[] = [];
 
-    // Break room furniture (larger NES-style forms with cleaner spacing)
-    drawables.push({
-      y: L.BREAK_START_Y + 44,
-      draw: () => {
-        const breakY = L.DIVIDER_Y + 8;
-        drawWaterCooler(ctx, (L.BREAK_START_X + 8) * s, breakY * s, s);
-        drawVendingMachine(ctx, (L.BREAK_START_X + 28) * s, breakY * s, s);
-        drawCoffeeMachine(ctx, (L.BREAK_START_X + 58) * s, (breakY + 8) * s, s);
-        drawCouch(ctx, (L.BREAK_START_X + 92) * s, (breakY + 26) * s, s);
-      }
-    });
-
-    // Plants
-    drawables.push({
-      y: L.WALL_H + 2,
-      draw: () => {
-        drawPottedPlant(ctx, 2 * s, (L.WALL_H + 2) * s, s);
-        drawPottedPlant(ctx, 80 * s, (L.WALL_H + 2) * s, s);
-      }
-    });
-
-    // Lead office desk
-    drawables.push({
-      y: L.LEAD_DESK_Y,
-      draw: () => drawDesk(ctx, L.LEAD_DESK_X * s, L.LEAD_DESK_Y * s, s),
-    });
-
-    // Main floor desks
-    const mainFloorAgents = Array.from(this.state.agents.values()).filter(
-      a => !a.isSubAgent && a.zone === 'main-floor'
-    );
-    for (let i = 0; i < Math.max(mainFloorAgents.length, 3); i++) {
-      const col = i % L.MAIN_DESKS_PER_ROW;
-      const row = Math.floor(i / L.MAIN_DESKS_PER_ROW);
-      const deskX = L.MAIN_DESK_START_X + col * L.MAIN_DESK_SPACING_X;
-      const deskY = L.MAIN_DESK_START_Y + row * L.MAIN_DESK_SPACING_Y;
+    if (!USE_DONARG_BACKGROUND || !this.donargBg) {
+      // Break room furniture
       drawables.push({
-        y: deskY,
-        draw: () => drawDesk(ctx, deskX * s, deskY * s, s),
+        y: L.BREAK_START_Y + 44,
+        draw: () => {
+          const breakY = L.DIVIDER_Y + 8;
+          drawWaterCooler(ctx, (L.BREAK_START_X + 8) * s, breakY * s, s);
+          drawVendingMachine(ctx, (L.BREAK_START_X + 28) * s, breakY * s, s);
+          drawCoffeeMachine(ctx, (L.BREAK_START_X + 58) * s, (breakY + 8) * s, s);
+          drawCouch(ctx, (L.BREAK_START_X + 92) * s, (breakY + 26) * s, s);
+        }
       });
-    }
 
-    // Sub-agent standing desks
-    const subAgents = Array.from(this.state.agents.values()).filter(a => a.isSubAgent);
-    for (let i = 0; i < subAgents.length; i++) {
-      const col = i % L.SUB_PER_ROW;
-      const row = Math.floor(i / L.SUB_PER_ROW);
-      const deskX = L.SUB_START_X + col * L.SUB_SPACING_X;
-      const deskY = L.SUB_START_Y + row * L.SUB_SPACING_Y;
+      // Plants
       drawables.push({
-        y: deskY,
-        draw: () => drawStandingDesk(ctx, deskX * s, deskY * s, s),
+        y: L.WALL_H + 2,
+        draw: () => {
+          drawPottedPlant(ctx, 2 * s, (L.WALL_H + 2) * s, s);
+          drawPottedPlant(ctx, 80 * s, (L.WALL_H + 2) * s, s);
+        }
       });
+
+      // Lead office desk
+      drawables.push({
+        y: L.LEAD_DESK_Y,
+        draw: () => drawDesk(ctx, L.LEAD_DESK_X * s, L.LEAD_DESK_Y * s, s),
+      });
+
+      // Main floor desks
+      const mainFloorAgents = Array.from(this.state.agents.values()).filter(
+        a => !a.isSubAgent && a.zone === 'main-floor'
+      );
+      for (let i = 0; i < Math.max(mainFloorAgents.length, 3); i++) {
+        const col = i % L.MAIN_DESKS_PER_ROW;
+        const row = Math.floor(i / L.MAIN_DESKS_PER_ROW);
+        const deskX = L.MAIN_DESK_START_X + col * L.MAIN_DESK_SPACING_X;
+        const deskY = L.MAIN_DESK_START_Y + row * L.MAIN_DESK_SPACING_Y;
+        drawables.push({
+          y: deskY,
+          draw: () => drawDesk(ctx, deskX * s, deskY * s, s),
+        });
+      }
+
+      // Sub-agent standing desks
+      const subAgents = Array.from(this.state.agents.values()).filter(a => a.isSubAgent);
+      for (let i = 0; i < subAgents.length; i++) {
+        const col = i % L.SUB_PER_ROW;
+        const row = Math.floor(i / L.SUB_PER_ROW);
+        const deskX = L.SUB_START_X + col * L.SUB_SPACING_X;
+        const deskY = L.SUB_START_Y + row * L.SUB_SPACING_Y;
+        drawables.push({
+          y: deskY,
+          draw: () => drawStandingDesk(ctx, deskX * s, deskY * s, s),
+        });
+      }
     }
 
     // ── Characters ──
