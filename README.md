@@ -40,7 +40,7 @@ Output goes to `dist/`.
 
 ## Retro Visual System
 
-Pixel Claw now uses a unified FC/NES-inspired procedural art style (no runtime atlas slicing), so furniture, floors, characters, effects, and UI all share the same palette and chunky silhouette language.
+Pixel Claw uses a hybrid pixel style: Donarg office tileset assets for environment/furniture plus project-specific character/effects sprites for agent animation and readability.
 
 ### Design knobs
 

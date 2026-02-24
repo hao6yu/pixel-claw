@@ -1,5 +1,20 @@
 # Asset Licenses
 
+## Donarg Office Tileset (`public/assets/donarg/*`)
+
+- Source: purchased Donarg Office Tileset package in `assets/donarg/Office Tileset/`
+- Runtime files used:
+  - `public/assets/donarg/office-tileset-16-no-shadow.png`
+  - `public/assets/donarg/office-tileset-16.png`
+  - `public/assets/donarg/LICENSE.txt`
+- License summary (from vendor `LICENSE.txt`):
+  - Commercial and non-commercial use allowed
+  - Modification allowed
+  - Redistribution/resale of source tileset not allowed
+  - Prohibited use in web3/NFT/crypto/blockchain projects
+  - Prohibited use for AI/ML training
+  - Credit optional (appreciated: Donarg)
+
 ## Character sprites (`public/chars-idle.png`, `public/chars-action.png`)
 
 These sheets are custom derivative edits based on:

@@ -1,13 +1,46 @@
 import { pxAt, darken, lighten } from '../utils';
+import { getSheets } from '../sprite-loader';
 
-/** Atlas-based furniture drawing intentionally disabled for consistency. */
+type TileRect = { c: number; r: number; w: number; h: number };
+
+const DONARG_FURNITURE: Record<string, TileRect> = {
+  'desk-computer': { c: 0, r: 4, w: 2, h: 2 },
+  'desk-writing': { c: 2, r: 4, w: 2, h: 2 },
+  'chair-large': { c: 6, r: 16, w: 1, h: 1 },
+  'plant-tall': { c: 2, r: 23, w: 1, h: 2 },
+  'bookshelf': { c: 10, r: 8, w: 2, h: 2 },
+  'whiteboard': { c: 1, r: 28, w: 2, h: 1 },
+  'painting': { c: 1, r: 25, w: 2, h: 1 },
+  'clock': { c: 4, r: 24, w: 1, h: 1 },
+  'water-cooler': { c: 9, r: 18, w: 1, h: 2 },
+  'vending-machine': { c: 11, r: 2, w: 2, h: 3 },
+  'coffee-machine': { c: 8, r: 18, w: 1, h: 1 },
+  'couch': { c: 7, r: 3, w: 2, h: 2 },
+};
+
 function drawFurnitureSprite(
-  _ctx: CanvasRenderingContext2D,
-  _key: string,
-  _x: number, _y: number,
-  _destW: number, _destH: number,
+  ctx: CanvasRenderingContext2D,
+  key: string,
+  x: number, y: number,
+  destW: number, destH: number,
 ): boolean {
-  return false;
+  const rect = DONARG_FURNITURE[key];
+  const sheets = getSheets();
+  if (!rect || !sheets?.donargOffice) return false;
+
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(
+    sheets.donargOffice,
+    rect.c * 16,
+    rect.r * 16,
+    rect.w * 16,
+    rect.h * 16,
+    Math.round(x),
+    Math.round(y),
+    Math.round(destW),
+    Math.round(destH),
+  );
+  return true;
 }
 
 export function drawDesk(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
@@ -145,6 +178,7 @@ export function drawStandingDesk(ctx: CanvasRenderingContext2D, x: number, y: nu
 }
 
 export function drawBookshelf(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
+  if (drawFurnitureSprite(ctx, 'bookshelf', x, y, 24 * s, 24 * s)) return;
   // Deterministic 24x24 wall bookshelf (NES-style chunky silhouette)
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
@@ -228,6 +262,7 @@ export function drawPottedPlant(ctx: CanvasRenderingContext2D, x: number, y: num
 }
 
 export function drawClock(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, time: number) {
+  if (drawFurnitureSprite(ctx, 'clock', x, y, 12 * s, 12 * s)) return;
   // Deterministic 12x12 clock to avoid atlas crop variance
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
@@ -258,6 +293,7 @@ export function drawClock(ctx: CanvasRenderingContext2D, x: number, y: number, s
 }
 
 export function drawWaterCooler(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
+  if (drawFurnitureSprite(ctx, 'water-cooler', x, y, 10 * s, 24 * s)) return;
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
   const by = y / s;
@@ -278,6 +314,7 @@ export function drawWaterCooler(ctx: CanvasRenderingContext2D, x: number, y: num
 }
 
 export function drawVendingMachine(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
+  if (drawFurnitureSprite(ctx, 'vending-machine', x, y, 20 * s, 30 * s)) return;
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
   const by = y / s;
@@ -306,6 +343,7 @@ export function drawVendingMachine(ctx: CanvasRenderingContext2D, x: number, y: 
 }
 
 export function drawCoffeeMachine(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
+  if (drawFurnitureSprite(ctx, 'coffee-machine', x, y, 12 * s, 10 * s)) return;
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
   const by = y / s;
@@ -325,6 +363,7 @@ export function drawCoffeeMachine(ctx: CanvasRenderingContext2D, x: number, y: n
 }
 
 export function drawCouch(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
+  if (drawFurnitureSprite(ctx, 'couch', x, y, 32 * s, 18 * s)) return;
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
   const by = y / s;
@@ -353,6 +392,7 @@ export function drawCouch(ctx: CanvasRenderingContext2D, x: number, y: number, s
 }
 
 export function drawLandscapePainting(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
+  if (drawFurnitureSprite(ctx, 'painting', x, y, 26 * s, 14 * s)) return;
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
   const by = y / s;
@@ -372,6 +412,7 @@ export function drawLandscapePainting(ctx: CanvasRenderingContext2D, x: number, 
 }
 
 export function drawWhiteboard(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
+  if (drawFurnitureSprite(ctx, 'whiteboard', x, y, 30 * s, 16 * s)) return;
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
   const by = y / s;

@@ -5,6 +5,7 @@ export interface SpriteSheets {
   charsIdle: HTMLImageElement;
   charsAction: HTMLImageElement;
   uiEffects: HTMLImageElement;
+  donargOffice: HTMLImageElement;
 }
 
 let sheets: SpriteSheets | null = null;
@@ -35,13 +36,14 @@ export async function loadSpriteSheets(): Promise<SpriteSheets> {
 
   loading = true;
   try {
-    const [furniture, charsIdle, charsAction, uiEffects] = await Promise.all([
+    const [furniture, charsIdle, charsAction, uiEffects, donargOffice] = await Promise.all([
       loadImage('furniture.png'),
       loadImage('chars-idle.png'),
       loadImage('chars-action.png'),
       loadImage('ui-effects.png'),
+      loadImage('assets/donarg/office-tileset-16-no-shadow.png'),
     ]);
-    sheets = { furniture, charsIdle, charsAction, uiEffects };
+    sheets = { furniture, charsIdle, charsAction, uiEffects, donargOffice };
     loaded = true;
     return sheets;
   } catch (e) {
