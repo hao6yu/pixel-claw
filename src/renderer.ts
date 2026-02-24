@@ -227,6 +227,11 @@ export class Renderer {
             );
           }
 
+          const seated =
+            (agent.zone === 'lead-office' || agent.zone === 'main-floor' || agent.zone === 'sub-agent-zone') &&
+            agent.activity !== 'walking' &&
+            agent.activity !== 'sleeping';
+
           drawCharacter(
             ctx,
             agent.x * agentScale,
@@ -238,6 +243,7 @@ export class Renderer {
             agent.agentId,
             this.globalTime,
             agent.accessory,
+            seated,
           );
 
           ctx.restore();

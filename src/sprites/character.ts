@@ -72,6 +72,7 @@ export function drawCharacter(
   agentId: string = 'default',
   globalTime: number = 0,
   _accessoryOverride?: number,
+  seated: boolean = false,
 ) {
   ctx.imageSmoothingEnabled = false;
 
@@ -81,6 +82,24 @@ export function drawCharacter(
 
   const frameX = getFrameX(activity, globalTime);
   const bob = activity === 'walking' ? Math.round(Math.abs(Math.sin(globalTime * 12)) * scale) : 0;
+
+  if (seated) {
+    // Seated illusion: render upper body only and place lower behind desk/chair.
+    const srcH = 22;
+    const seatDrop = Math.round(8 * scale);
+    ctx.drawImage(
+      sheet,
+      frameX,
+      DOWN_ROW_Y,
+      FRAME_W,
+      srcH,
+      Math.round(baseX),
+      Math.round(baseY + seatDrop),
+      Math.round(FRAME_W * scale),
+      Math.round(srcH * scale),
+    );
+    return;
+  }
 
   ctx.drawImage(
     sheet,
