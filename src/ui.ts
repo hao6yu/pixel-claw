@@ -96,7 +96,59 @@ export function initUI(state: StateManager, gateway: Gateway, renderer: Renderer
     }
   }
 
+  // ── Projects popup ──
+  const projectsPopup = document.getElementById('projects-popup')!;
+  const projectsList = document.getElementById('projects-list')!;
+  const projectsClose = document.getElementById('projects-close')!;
+
+  const PROJECTS = [
+    { name: 'HowAI Agent', type: 'Flutter', desc: 'AI chat app — voice, images, web search', url: 'https://github.com/hao6yu/howai-agent' },
+    { name: 'HowAI Agent Web', type: 'Next.js', desc: 'Web companion — real-time chat & sync', url: 'https://github.com/hao6yu/howai-agent-web' },
+    { name: 'M&M Learning Lab', type: 'Flutter', desc: 'Kids education — math, phonics, puzzles', url: 'https://github.com/hao6yu/mm-learning-lab' },
+    { name: 'M&M Property Tycoon', type: 'Flutter', desc: 'Family board game — Monopoly-style', url: '' },
+    { name: 'Pixel Claw', type: 'Vite+TS', desc: 'This app! Agent office visualization', url: '' },
+    { name: 'claw-dash 🦞', type: 'Web', desc: 'OpenClaw monitoring dashboard', url: 'https://github.com/hao6yu/claw-dash' },
+    { name: 'peon-ping-win', type: 'PowerShell', desc: 'Claude Code notification sounds (Windows)', url: 'https://github.com/hao6yu/peon-ping-win' },
+    { name: 'ISW Technologies', type: 'Astro', desc: 'ISW business website', url: 'https://github.com/hao6yu/isw-website-v2' },
+    { name: 'Hao Yu Site', type: 'Astro', desc: 'Personal website', url: 'https://github.com/hao6yu/haoyu-website-v2' },
+    { name: 'IMS AI Gateway', type: 'FastAPI', desc: 'AI backend for work requests', url: '' },
+    { name: 'IMS TheBotGuy', type: 'Teams Bot', desc: 'Self-service work request bot', url: '' },
+  ];
+
+  function showProjects(screenX: number, screenY: number) {
+    projectsList.innerHTML = '';
+    for (const p of PROJECTS) {
+      const el = document.createElement(p.url ? 'a' : 'div');
+      el.className = 'project-item';
+      if (p.url) {
+        (el as HTMLAnchorElement).href = p.url;
+        (el as HTMLAnchorElement).target = '_blank';
+      }
+      el.innerHTML = `<div><span class="project-name">${p.name}</span><span class="project-type">${p.type}</span></div><div class="project-desc">${p.desc}</div>`;
+      projectsList.appendChild(el);
+    }
+    // Position near click but keep on screen
+    const popW = 300;
+    const popH = 340;
+    let left = Math.min(screenX, window.innerWidth - popW - 10);
+    let top = Math.min(screenY - 20, window.innerHeight - popH - 10);
+    left = Math.max(10, left);
+    top = Math.max(40, top);
+    projectsPopup.style.left = left + 'px';
+    projectsPopup.style.top = top + 'px';
+    projectsPopup.style.display = 'block';
+  }
+
+  projectsClose.addEventListener('click', () => {
+    projectsPopup.style.display = 'none';
+  });
+
+  renderer.onDeskClick = (desk) => {
+    showProjects(desk.screenX, desk.screenY);
+  };
+
   renderer.onAgentClick = (agent: AgentState | null) => {
+    projectsPopup.style.display = 'none';
     if (!agent) {
       detailPanel.style.display = 'none';
       return;

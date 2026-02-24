@@ -309,7 +309,7 @@ class NavigationGrid {
 
     const goalKey = `${goal.cx},${goal.cy}`;
     if (!seen.has(goalKey)) {
-      console.warn(`[nav] BFS FAILED: start=(${start.cx},${start.cy}) walkable=${this.isWalkableCell(start.cx,start.cy)}, goal=(${goal.cx},${goal.cy}) walkable=${this.isWalkableCell(goal.cx,goal.cy)}, visited=${seen.size} cells`);
+      // BFS failed — fallback to direct endpoint
       return [endPt];
     }
 
@@ -381,8 +381,6 @@ class NavigationGrid {
 export class ZoneManager {
   private leadAgentId: string | null = null;
   private nav = new NavigationGrid();
-  private _debugTimer = 0;
-  private _debugLoggedAgents?: Set<string>;
 
   assignZone(agent: AgentState, allMainAgents: AgentState[]): ZoneType {
     if (agent.isSubAgent) return 'sub-agent-zone';
@@ -436,7 +434,6 @@ export class ZoneManager {
   }
 
   update(agents: Map<string, AgentState>, dt: number): void {
-    this._debugTimer += dt;
     const allAgents = Array.from(agents.values());
     const mainAgents = allAgents.filter((agent) => !agent.isSubAgent);
     const occupied = new Set<string>();
@@ -505,15 +502,6 @@ export class ZoneManager {
         (agent.zone !== newZone || changedTarget || Math.hypot(agent.x - target.x, agent.y - target.y) > 2);
 
       // Debug every frame for first 20s
-      if (!agent.isSubAgent && this._debugTimer < 20) {
-        if (!this._debugLoggedAgents) this._debugLoggedAgents = new Set();
-        const key = `${agent.agentId}-${newZone}-${agent.activity}`;
-        if (!this._debugLoggedAgents.has(key)) {
-          this._debugLoggedAgents.add(key);
-          console.log(`[zone] ${agent.agentId}: zone=${agent.zone} newZone=${newZone} activity=${agent.activity} shouldWalk=${shouldWalk} alreadyInBreak=${alreadyInBreakRoom} pos=(${agent.x.toFixed(0)},${agent.y.toFixed(0)}) lastActive=${((Date.now()-agent.lastActiveAt)/1000).toFixed(0)}s`);
-        }
-      }
-
       if (shouldWalk) {
         agent.targetZone = newZone;
         agent.targetX = target.x;
@@ -528,7 +516,6 @@ export class ZoneManager {
       // Break-room idle wandering
       const inBreakIdle = agent.zone === 'break-room' && agent.activity !== 'walking' && agent.activity !== 'sleeping';
       if (inBreakIdle && agent.wanderTimer !== undefined && agent.wanderTimer < 0.1 && agent.wanderTimer > -0.1) {
-        console.log(`[wander] ${agent.agentId}: timer=${agent.wanderTimer?.toFixed(2)}, pos=(${agent.x.toFixed(0)},${agent.y.toFixed(0)}), zone=${agent.zone}`);
       }
       if (inBreakIdle) {
         if (agent.wanderTimer === undefined) {

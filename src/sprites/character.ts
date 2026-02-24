@@ -92,7 +92,6 @@ export function drawCharacter(
 
   const frameX = getFrameX(activity, globalTime, seated);
   const rowY = getRowY(facing);
-  // facing indicator removed
   const bob = activity === 'walking' ? Math.round(Math.abs(Math.sin(globalTime * 12)) * scale) : 0;
   const drawX = Math.round(baseX);
   const drawY = Math.round(baseY - bob);

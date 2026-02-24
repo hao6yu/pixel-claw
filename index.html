@@ -152,6 +152,67 @@
       white-space: pre-wrap;
       word-break: break-all;
     }
+    #projects-popup {
+      position: absolute;
+      z-index: 60;
+      background: rgba(34,29,44,0.97);
+      border: 3px solid #ffcb6b;
+      padding: 0;
+      min-width: 260px;
+      max-width: 320px;
+      box-shadow: 6px 6px 0 rgba(0,0,0,0.5);
+      font-size: 13px;
+    }
+    .projects-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: #3a3248;
+      border-bottom: 2px solid #6a5a7a;
+      color: #ffcb6b;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .projects-header button {
+      background: none;
+      border: none;
+      color: #b6a998;
+      cursor: pointer;
+      font-size: 16px;
+      font-family: 'Courier New', monospace;
+    }
+    .projects-header button:hover { color: #ff9a9a; }
+    #projects-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .project-item {
+      display: block;
+      padding: 8px 12px;
+      color: #e8dcc8;
+      text-decoration: none;
+      border-bottom: 1px solid #2e2838;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .project-item:hover {
+      background: #4a3d5c;
+    }
+    .project-item .project-name {
+      font-weight: bold;
+      color: #68d39b;
+    }
+    .project-item .project-type {
+      font-size: 11px;
+      color: #b6a998;
+      margin-left: 6px;
+    }
+    .project-item .project-desc {
+      font-size: 11px;
+      color: #9a8faa;
+      margin-top: 2px;
+    }
     #conn-error {
       color: #ff9a9a;
       font-size: 12px;
@@ -179,6 +240,13 @@
       <input id="gateway-token" type="password" placeholder="Your gateway token" />
       <button id="connect-btn">CONNECT</button>
       <div id="conn-error"></div>
+    </div>
+    <div id="projects-popup" style="display:none;">
+      <div class="projects-header">
+        <span>📂 Projects</span>
+        <button id="projects-close">✕</button>
+      </div>
+      <div id="projects-list"></div>
     </div>
     <div id="detail-panel">
       <h3 id="detail-name"></h3>

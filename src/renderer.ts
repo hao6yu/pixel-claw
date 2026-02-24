@@ -29,6 +29,7 @@ export class Renderer {
   private donargBg: HTMLImageElement | null = null;
   selectedAgent: AgentState | null = null;
   onAgentClick?: (agent: AgentState | null) => void;
+  onDeskClick?: (desk: { x: number; y: number; screenX: number; screenY: number }) => void;
 
   constructor(canvas: HTMLCanvasElement, state: StateManager) {
     this.canvas = canvas;
@@ -381,11 +382,26 @@ export class Renderer {
     ctx.textAlign = 'left';
   }
 
+  // Desk hitboxes matching the blocker rects in zones.ts
+  private static DESK_RECTS = [
+    { x: 25, y: 58, w: 28, h: 18 },
+    { x: 76, y: 58, w: 28, h: 18 },
+    { x: 127, y: 58, w: 28, h: 18 },
+    { x: 25, y: 104, w: 28, h: 18 },
+    { x: 76, y: 104, w: 28, h: 18 },
+    { x: 127, y: 104, w: 28, h: 18 },
+    // Lead office desk
+    { x: 229, y: 214, w: 28, h: 18 },
+    // Manager desk
+    { x: 102, y: 206, w: 46, h: 18 },
+  ];
+
   private handleClick(e: MouseEvent) {
     const rect = this.canvas.getBoundingClientRect();
     const clickX = (e.clientX - rect.left) / this.scale;
     const clickY = (e.clientY - rect.top) / this.scale;
 
+    // Check agent clicks first
     const agents = Array.from(this.state.agents.values());
     for (const agent of agents) {
       const ax = agent.x;
@@ -396,6 +412,19 @@ export class Renderer {
       if (clickX >= ax && clickX <= ax + aw && clickY >= ay && clickY <= ay + ah) {
         this.selectedAgent = agent;
         this.onAgentClick?.(agent);
+        return;
+      }
+    }
+
+    // Check desk clicks
+    for (const desk of Renderer.DESK_RECTS) {
+      if (clickX >= desk.x && clickX <= desk.x + desk.w && clickY >= desk.y && clickY <= desk.y + desk.h) {
+        this.onDeskClick?.({
+          x: desk.x,
+          y: desk.y,
+          screenX: Math.round(e.clientX),
+          screenY: Math.round(e.clientY),
+        });
         return;
       }
     }
