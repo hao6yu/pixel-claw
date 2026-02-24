@@ -14,8 +14,7 @@ import { VS, pixelFont } from './visual-system';
 const SUB_SCALE_FACTOR = 0.8;
 const SHOW_AGENT_LABELS = false;
 const USE_DONARG_BACKGROUND = true;
-const DONARG_BG_SRC = '/assets/donarg/office-level-4.png';
-const DONARG_CROP = { x: 160, y: 120, w: 320, h: 256 };
+const DONARG_BG_SRC = '/assets/donarg/office-level-1.png';
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
@@ -87,18 +86,15 @@ export class Renderer {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (USE_DONARG_BACKGROUND && this.donargBg) {
-      // Curated crop from purchased Donarg office map (manager office + workspace + break + meeting).
-      ctx.drawImage(
-        this.donargBg,
-        DONARG_CROP.x,
-        DONARG_CROP.y,
-        DONARG_CROP.w,
-        DONARG_CROP.h,
-        0,
-        0,
-        canvas.width,
-        canvas.height,
-      );
+      // Fit full Donarg layout into viewport (no hard crop), preserving aspect ratio.
+      const srcW = this.donargBg.width;
+      const srcH = this.donargBg.height;
+      const scaleFit = Math.min(canvas.width / srcW, canvas.height / srcH);
+      const dw = Math.round(srcW * scaleFit);
+      const dh = Math.round(srcH * scaleFit);
+      const dx = Math.round((canvas.width - dw) / 2);
+      const dy = Math.round((canvas.height - dh) / 2);
+      ctx.drawImage(this.donargBg, 0, 0, srcW, srcH, dx, dy, dw, dh);
     }
 
     // ── Layer 1: Floors ──
