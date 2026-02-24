@@ -364,24 +364,10 @@ export class ZoneManager {
         agent.targetX = target.x;
         agent.targetY = target.y;
 
-        // Initial placement
+        // Initial placement: seat agents directly at their assigned chair/desk.
         if (agent.x === 0 && agent.y === 0) {
-          if (agent.isSubAgent) {
-            // Spawn near right edge but still on walkable tile.
-            const spawn = this.nav.clampToNearestWalkable(VW - 8, target.y);
-            agent.x = spawn.x;
-            agent.y = spawn.y;
-            agent.targetZone = newZone;
-            agent.targetX = target.x;
-            agent.targetY = target.y;
-            agent.previousActivity = agent.activity;
-            agent.activity = 'walking';
-            agent.walkPath = this.calculatePath(agent, target);
-            agent.walkIndex = 0;
-          } else {
-            agent.x = target.x;
-            agent.y = target.y;
-          }
+          agent.x = target.x;
+          agent.y = target.y;
         }
       }
 
