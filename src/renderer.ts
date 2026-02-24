@@ -15,6 +15,7 @@ const SUB_SCALE_FACTOR = 0.8;
 const SHOW_AGENT_LABELS = false;
 const USE_DONARG_BACKGROUND = true;
 const DONARG_BG_SRC = '/assets/donarg/office-level-4-custom.png';
+const DONARG_BOARD_SRC = { x: 22, y: 258, w: 596, h: 520 }; // trimmed to actual office board bounds
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
@@ -86,15 +87,18 @@ export class Renderer {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (USE_DONARG_BACKGROUND && this.donargBg) {
-      // Always show full board: auto-fit entire Donarg map to viewport.
-      const srcW = this.donargBg.width;
-      const srcH = this.donargBg.height;
-      const scaleFit = Math.min(canvas.width / srcW, canvas.height / srcH);
-      const dw = Math.round(srcW * scaleFit);
-      const dh = Math.round(srcH * scaleFit);
-      const dx = Math.round((canvas.width - dw) / 2);
-      const dy = Math.round((canvas.height - dh) / 2);
-      ctx.drawImage(this.donargBg, 0, 0, srcW, srcH, dx, dy, dw, dh);
+      // Draw only the real office board area (no outer void), scaled to fill viewport.
+      ctx.drawImage(
+        this.donargBg,
+        DONARG_BOARD_SRC.x,
+        DONARG_BOARD_SRC.y,
+        DONARG_BOARD_SRC.w,
+        DONARG_BOARD_SRC.h,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      );
     }
 
     // ── Layer 1: Floors ──
