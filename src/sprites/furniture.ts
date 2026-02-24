@@ -249,7 +249,8 @@ export function drawStandingDesk(ctx: CanvasRenderingContext2D, x: number, y: nu
 }
 
 export function drawBookshelf(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
-  if (drawFurnitureSprite(ctx, 'bookshelf-large', x, y, 26 * s, 20 * s)) return;
+  // Medium shelf asset has better content fill (less dead padding) for wall decor
+  if (drawFurnitureSprite(ctx, 'bookshelf-medium', x, y, 24 * s, 24 * s)) return;
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
   const by = y / s;
