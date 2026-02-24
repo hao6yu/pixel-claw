@@ -1,10 +1,12 @@
-/** Loads all 4 PNG sprite sheets and exposes them for rendering */
+export interface CharacterSet {
+  stand: HTMLImageElement;
+  hold: HTMLImageElement;
+  reload: HTMLImageElement;
+}
 
 export interface SpriteSheets {
-  furniture: HTMLImageElement;
-  charsIdle: HTMLImageElement;
-  charsAction: HTMLImageElement;
-  uiEffects: HTMLImageElement;
+  tilemap: HTMLImageElement;
+  characters: Record<string, CharacterSet>;
 }
 
 let sheets: SpriteSheets | null = null;
@@ -23,7 +25,6 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 export async function loadSpriteSheets(): Promise<SpriteSheets> {
   if (sheets) return sheets;
   if (loading) {
-    // Wait for existing load
     return new Promise((resolve) => {
       const check = () => {
         if (sheets) resolve(sheets);
@@ -35,28 +36,43 @@ export async function loadSpriteSheets(): Promise<SpriteSheets> {
 
   loading = true;
   try {
-    const [furniture, charsIdle, charsAction, uiEffects] = await Promise.all([
-      loadImage('furniture.png'),
-      loadImage('chars-idle.png'),
-      loadImage('chars-action.png'),
-      loadImage('ui-effects.png'),
+    const [tilemap, ...chars] = await Promise.all([
+      loadImage('kenney/env/tilemap_packed.png'),
+      loadImage('kenney/chars/manBlue_stand.png'),
+      loadImage('kenney/chars/manBlue_hold.png'),
+      loadImage('kenney/chars/manBlue_reload.png'),
+      loadImage('kenney/chars/manBrown_stand.png'),
+      loadImage('kenney/chars/manBrown_hold.png'),
+      loadImage('kenney/chars/manBrown_reload.png'),
+      loadImage('kenney/chars/womanGreen_stand.png'),
+      loadImage('kenney/chars/womanGreen_hold.png'),
+      loadImage('kenney/chars/womanGreen_reload.png'),
+      loadImage('kenney/chars/robot1_stand.png'),
+      loadImage('kenney/chars/robot1_hold.png'),
+      loadImage('kenney/chars/robot1_reload.png'),
     ]);
-    sheets = { furniture, charsIdle, charsAction, uiEffects };
+
+    const characters: Record<string, CharacterSet> = {
+      max: { stand: chars[0], hold: chars[1], reload: chars[2] },
+      chief: { stand: chars[3], hold: chars[4], reload: chars[5] },
+      cortana: { stand: chars[6], hold: chars[7], reload: chars[8] },
+      ghost: { stand: chars[9], hold: chars[10], reload: chars[11] },
+    };
+
+    sheets = { tilemap, characters };
     loaded = true;
     return sheets;
   } catch (e) {
-    console.warn('Sprite sheets failed to load, falling back to procedural:', e);
+    console.warn('CC0 sprite sheets failed to load, falling back to procedural:', e);
     loading = false;
     throw e;
   }
 }
 
-/** Returns loaded sheets or null if not yet ready */
 export function getSheets(): SpriteSheets | null {
   return sheets;
 }
 
-/** Whether sprites have finished loading */
 export function spritesLoaded(): boolean {
   return loaded;
 }

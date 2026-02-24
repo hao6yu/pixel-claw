@@ -1,13 +1,35 @@
 import { pxAt, darken, lighten } from '../utils';
 
-/** Atlas-based furniture drawing intentionally disabled for consistency. */
+import { getSheets } from '../sprite-loader';
+
+const TILE = 17;
+const COLS = 12;
+
+function drawTile(ctx: CanvasRenderingContext2D, index: number, x: number, y: number, w: number, h: number) {
+  const sheets = getSheets();
+  if (!sheets) return false;
+  const sx = (index % COLS) * TILE;
+  const sy = Math.floor(index / COLS) * TILE;
+  ctx.drawImage(sheets.tilemap, sx, sy, 16, 16, x, y, w, h);
+  return true;
+}
+
+/** Lightweight CC0 furniture fill using Kenney tiny-town tilemap. */
 function drawFurnitureSprite(
-  _ctx: CanvasRenderingContext2D,
-  _key: string,
-  _x: number, _y: number,
-  _destW: number, _destH: number,
+  ctx: CanvasRenderingContext2D,
+  key: string,
+  x: number, y: number,
+  destW: number, destH: number,
 ): boolean {
-  return false;
+  const map: Record<string, number> = {
+    'desk-computer': 64,
+    'chair-large': 65,
+    'desk-writing': 76,
+    'plant-tall': 116,
+  };
+  const tile = map[key];
+  if (tile === undefined) return false;
+  return drawTile(ctx, tile, Math.round(x), Math.round(y), Math.round(destW), Math.round(destH));
 }
 
 export function drawDesk(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
