@@ -7,10 +7,11 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #2a2520;
+      background: #15121d;
       font-family: 'Courier New', monospace;
+      image-rendering: pixelated;
       overflow: hidden;
-      color: #e0d8c8;
+      color: #e8dcc8;
     }
     #app {
       width: 100vw;
@@ -27,19 +28,19 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: #3a3028;
-      border: 2px solid #5a4a38;
-      border-radius: 8px;
+      background: #2e2838;
+      border: 4px solid #6a5a7a;
+      border-radius: 0;
       padding: 32px;
       min-width: 360px;
       z-index: 100;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      box-shadow: 8px 8px 0 rgba(0,0,0,0.45);
     }
     #connection-panel.hidden { display: none; }
     #connection-panel h2 {
       text-align: center;
       margin-bottom: 20px;
-      color: #e0a050;
+      color: #ffcb6b;
       font-size: 20px;
       letter-spacing: 2px;
     }
@@ -47,37 +48,39 @@
       display: block;
       margin-bottom: 4px;
       font-size: 12px;
-      color: #a0a0b0;
+      color: #b6a998;
     }
     #connection-panel input {
       width: 100%;
       padding: 10px;
       margin-bottom: 16px;
-      background: #2a2218;
-      border: 1px solid #5a4a38;
-      border-radius: 4px;
-      color: #e0d8c8;
+      background: #221d2c;
+      border: 2px solid #6a5a7a;
+      border-radius: 0;
+      color: #e8dcc8;
       font-family: 'Courier New', monospace;
+      image-rendering: pixelated;
       font-size: 14px;
     }
     #connection-panel input:focus {
       outline: none;
-      border-color: #e0a050;
+      border-color: #ffcb6b;
     }
     #connect-btn {
       width: 100%;
       padding: 12px;
-      background: #c07830;
+      background: #8a5ed3;
       border: none;
-      border-radius: 4px;
+      border-radius: 0;
       color: white;
       font-family: 'Courier New', monospace;
+      image-rendering: pixelated;
       font-size: 16px;
       font-weight: bold;
       cursor: pointer;
       letter-spacing: 2px;
     }
-    #connect-btn:hover { background: #a06020; }
+    #connect-btn:hover { background: #774bc0; }
     #connect-btn:disabled { background: #555; cursor: not-allowed; }
     #status-bar {
       position: absolute;
@@ -85,29 +88,30 @@
       left: 0;
       right: 0;
       height: 32px;
-      background: rgba(42, 37, 32, 0.92);
+      background: rgba(34,29,44,0.95);
       display: flex;
       align-items: center;
       padding: 0 12px;
       font-size: 12px;
       z-index: 50;
-      border-bottom: 1px solid #5a4a38;
+      border-bottom: 2px solid #6a5a7a;
     }
     #status-bar .dot {
       width: 8px; height: 8px;
       border-radius: 50%;
       margin-right: 8px;
-      background: #c06040;
+      background: #d35f5f;
     }
-    #status-bar .dot.connected { background: #4ecca3; }
+    #status-bar .dot.connected { background: #68d39b; }
     #status-bar .info { flex: 1; }
     #status-bar .disconnect-btn {
       background: none;
-      border: 1px solid #c07830;
-      color: #c07830;
+      border: 2px solid #8a5ed3;
+      color: #ff9a9a;
       padding: 2px 8px;
       border-radius: 3px;
       font-family: 'Courier New', monospace;
+      image-rendering: pixelated;
       font-size: 11px;
       cursor: pointer;
     }
@@ -115,9 +119,9 @@
       position: absolute;
       bottom: 12px;
       right: 12px;
-      background: rgba(42, 37, 32, 0.95);
-      border: 1px solid #5a4a38;
-      border-radius: 6px;
+      background: rgba(46,40,56,0.95);
+      border: 2px solid #6a5a7a;
+      border-radius: 0;
       padding: 16px;
       min-width: 280px;
       max-width: 360px;
@@ -126,7 +130,7 @@
       display: none;
     }
     #detail-panel h3 {
-      color: #e0a050;
+      color: #ffcb6b;
       margin-bottom: 8px;
       font-size: 14px;
     }
@@ -134,22 +138,22 @@
       margin-bottom: 4px;
     }
     #detail-panel .field span.label {
-      color: #a0a0b0;
+      color: #b6a998;
     }
     #detail-panel .preview {
       margin-top: 8px;
       padding: 8px;
-      background: #2a2218;
-      border-radius: 4px;
+      background: #221d2c;
+      border-radius: 0;
       max-height: 80px;
       overflow: hidden;
       font-size: 11px;
-      color: #c0c0d0;
+      color: #d7cfc0;
       white-space: pre-wrap;
       word-break: break-all;
     }
     #conn-error {
-      color: #c07830;
+      color: #ff9a9a;
       font-size: 12px;
       margin-top: 8px;
       text-align: center;
