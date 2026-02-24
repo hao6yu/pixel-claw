@@ -1,8 +1,5 @@
 import type { AgentActivity } from '../types';
 import { pxAt, darken, lighten, hashNum } from '../utils';
-import { getSheets } from '../sprite-loader';
-import { getCharName, CHAR_IDLE_ATLAS, CHAR_ACTION_ATLAS } from '../atlas';
-import type { SpriteRect } from '../atlas';
 
 const SKIN_TONES = ['#f5d0a9', '#e8b88a', '#d4a574', '#c68c5b', '#a0704a', '#7a5435'];
 const HAIR_COLORS = ['#2a1a0a', '#4a2a10', '#8b6040', '#c0a060', '#e0c080', '#d04030', '#303030', '#f0e0c0'];
@@ -44,57 +41,16 @@ function getAppearance(agentId: string, shirtColor: string): AgentAppearance {
   };
 }
 
-/** Try to draw character from sprite sheet. Returns true if drawn. */
+/** Atlas characters disabled to avoid style and crop mismatches. */
 function drawCharacterSprite(
-  ctx: CanvasRenderingContext2D,
-  baseX: number, baseY: number,
-  activity: AgentActivity,
-  scale: number,
-  agentId: string,
-  globalTime: number,
+  _ctx: CanvasRenderingContext2D,
+  _baseX: number, _baseY: number,
+  _activity: AgentActivity,
+  _scale: number,
+  _agentId: string,
+  _globalTime: number,
 ): boolean {
-  const sheets = getSheets();
-  if (!sheets) return false;
-
-  const name = getCharName(agentId);
-  let sheet: HTMLImageElement;
-  let rect: SpriteRect | undefined;
-
-  if (activity === 'walking') {
-    sheet = sheets.charsAction;
-    const walkFrame = Math.floor(globalTime * 4) % 2;
-    rect = CHAR_ACTION_ATLAS[`${name}-walk${walkFrame + 1}`];
-  } else if (activity === 'sleeping') {
-    sheet = sheets.charsAction;
-    rect = CHAR_ACTION_ATLAS[`${name}-sleeping`];
-  } else if (activity === 'thinking') {
-    sheet = sheets.charsIdle;
-    rect = CHAR_IDLE_ATLAS[`${name}-thinking`];
-  } else if (activity === 'coding' || activity === 'browsing' || activity === 'running-cmd' || activity === 'reading') {
-    sheet = sheets.charsIdle;
-    rect = CHAR_IDLE_ATLAS[`${name}-typing`];
-  } else {
-    // idle, communicating, error, etc
-    sheet = sheets.charsIdle;
-    rect = CHAR_IDLE_ATLAS[`${name}-idle`];
-  }
-
-  if (!rect) return false;
-
-  ctx.imageSmoothingEnabled = false;
-  // Character sprites are 256x512 in the PNG, draw them scaled to ~16x24 virtual pixels
-  const destW = 16 * scale;
-  const destH = 24 * scale;
-  // Center horizontally on baseX, align bottom
-  const destX = Math.round(baseX);
-  const destY = Math.round(baseY);
-
-  ctx.drawImage(
-    sheet,
-    rect.x, rect.y, rect.w, rect.h,
-    destX, destY, destW, destH,
-  );
-  return true;
+  return false;
 }
 
 export function drawCharacter(

@@ -1,117 +1,13 @@
 import { pxAt, darken, lighten } from '../utils';
-import { getSheets } from '../sprite-loader';
-import { FURNITURE_ATLAS } from '../atlas';
-import type { SpriteRect } from '../atlas';
 
-const TRIM_CACHE: Record<string, SpriteRect> = {};
-
-function getTrimmedFurnitureRect(key: string, baseRect: SpriteRect): SpriteRect {
-  if (TRIM_CACHE[key]) return TRIM_CACHE[key];
-  const sheets = getSheets();
-  if (!sheets) return baseRect;
-
-  const sample = document.createElement('canvas');
-  sample.width = baseRect.w;
-  sample.height = baseRect.h;
-  const sctx = sample.getContext('2d');
-  if (!sctx) return baseRect;
-
-  sctx.imageSmoothingEnabled = false;
-  sctx.drawImage(
-    sheets.furniture,
-    baseRect.x,
-    baseRect.y,
-    baseRect.w,
-    baseRect.h,
-    0,
-    0,
-    baseRect.w,
-    baseRect.h,
-  );
-
-  const img = sctx.getImageData(0, 0, baseRect.w, baseRect.h).data;
-
-  const corners = [
-    0,
-    (baseRect.w - 1) * 4,
-    ((baseRect.h - 1) * baseRect.w) * 4,
-    (((baseRect.h - 1) * baseRect.w) + (baseRect.w - 1)) * 4,
-  ];
-  let bgR = 0, bgG = 0, bgB = 0, bgA = 0;
-  for (const idx of corners) {
-    bgR += img[idx];
-    bgG += img[idx + 1];
-    bgB += img[idx + 2];
-    bgA += img[idx + 3];
-  }
-  bgR /= corners.length;
-  bgG /= corners.length;
-  bgB /= corners.length;
-  bgA /= corners.length;
-
-  const isForeground = (r: number, g: number, b: number, a: number) => {
-    // Transparent pixels are always background
-    if (a <= 8) return false;
-
-    // If sprite cell has opaque matte background, treat near-corner color as padding
-    const dr = r - bgR;
-    const dg = g - bgG;
-    const db = b - bgB;
-    const da = a - bgA;
-    const colorDist2 = dr * dr + dg * dg + db * db + da * da;
-
-    // Tight threshold to avoid eating real pixels
-    return colorDist2 > 24 * 24;
-  };
-
-  let minX = baseRect.w;
-  let minY = baseRect.h;
-  let maxX = -1;
-  let maxY = -1;
-
-  for (let yy = 0; yy < baseRect.h; yy++) {
-    for (let xx = 0; xx < baseRect.w; xx++) {
-      const i = (yy * baseRect.w + xx) * 4;
-      if (isForeground(img[i], img[i + 1], img[i + 2], img[i + 3])) {
-        if (xx < minX) minX = xx;
-        if (yy < minY) minY = yy;
-        if (xx > maxX) maxX = xx;
-        if (yy > maxY) maxY = yy;
-      }
-    }
-  }
-
-  if (maxX < minX || maxY < minY) {
-    TRIM_CACHE[key] = baseRect;
-    return baseRect;
-  }
-
-  const pad = 1;
-  const trimmed: SpriteRect = {
-    x: baseRect.x + Math.max(0, minX - pad),
-    y: baseRect.y + Math.max(0, minY - pad),
-    w: Math.max(1, Math.min(baseRect.w, maxX - minX + 1 + pad * 2)),
-    h: Math.max(1, Math.min(baseRect.h, maxY - minY + 1 + pad * 2)),
-  };
-  TRIM_CACHE[key] = trimmed;
-  return trimmed;
-}
-
-/** Draw a furniture sprite from the sheet. Returns true if drawn. */
+/** Atlas-based furniture drawing intentionally disabled for consistency. */
 function drawFurnitureSprite(
-  ctx: CanvasRenderingContext2D,
-  key: string,
-  x: number, y: number,
-  destW: number, destH: number,
+  _ctx: CanvasRenderingContext2D,
+  _key: string,
+  _x: number, _y: number,
+  _destW: number, _destH: number,
 ): boolean {
-  const sheets = getSheets();
-  if (!sheets) return false;
-  const rect = FURNITURE_ATLAS[key];
-  if (!rect) return false;
-  const src = getTrimmedFurnitureRect(key, rect);
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(sheets.furniture, src.x, src.y, src.w, src.h, Math.round(x), Math.round(y), Math.round(destW), Math.round(destH));
-  return true;
+  return false;
 }
 
 export function drawDesk(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {

@@ -9,6 +9,7 @@ import {
   drawLandscapePainting, drawWhiteboard,
   drawZzz, drawThoughtBubble,
 } from './sprites/index';
+import { VS, pixelFont } from './visual-system';
 
 const SUB_SCALE_FACTOR = 2 / 3;
 
@@ -72,7 +73,7 @@ export class Renderer {
     ctx.imageSmoothingEnabled = false;
 
     // ── Layer 0: Background ──
-    ctx.fillStyle = '#2a2530';
+    ctx.fillStyle = VS.palette.bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // ── Layer 1: Floors ──
@@ -184,7 +185,7 @@ export class Renderer {
 
           // Active glow
           if (isActive) {
-            ctx.fillStyle = 'rgba(78,204,163,0.06)';
+            ctx.fillStyle = 'rgba(104,211,155,0.10)';
             ctx.fillRect(
               Math.round((agent.x - 4) * agentScale),
               Math.round((agent.y + 20) * agentScale),
@@ -195,7 +196,7 @@ export class Renderer {
 
           // Selection highlight
           if (agent === this.selectedAgent) {
-            ctx.strokeStyle = '#e0a050';
+            ctx.strokeStyle = VS.palette.textAccent;
             ctx.lineWidth = 2;
             ctx.strokeRect(
               Math.round((agent.x - 1) * agentScale),
@@ -244,7 +245,7 @@ export class Renderer {
     }
 
     // ── Layer 5b: Connection lines (sub-agent → parent) ──
-    ctx.strokeStyle = 'rgba(200,180,150,0.15)';
+    ctx.strokeStyle = 'rgba(232,220,200,0.20)';
     ctx.lineWidth = 2;
     ctx.setLineDash([3, 3]);
     for (const agent of allAgents) {
@@ -276,11 +277,11 @@ export class Renderer {
 
     // ── Empty state ──
     if (allAgents.length === 0) {
-      ctx.fillStyle = '#8a8070';
-      ctx.font = '16px "Courier New", monospace';
+      ctx.fillStyle = VS.palette.textDim;
+      ctx.font = pixelFont(16);
       ctx.textAlign = 'center';
       ctx.fillText('No agents active — the office is empty', canvas.width / 2, canvas.height / 2);
-      ctx.font = '12px "Courier New", monospace';
+      ctx.font = pixelFont(12);
       ctx.fillText('🦀', canvas.width / 2, canvas.height / 2 + 30);
       ctx.textAlign = 'left';
     }
@@ -332,20 +333,20 @@ export class Renderer {
     const displayName = emoji ? `${emoji} ${agent.label}` : agent.label;
 
     const fontSize = agent.isSubAgent ? Math.round(7 * this.scale * SUB_SCALE_FACTOR) : Math.round(9 * this.scale);
-    ctx.font = `${fontSize}px "Courier New", monospace`;
+    ctx.font = pixelFont(fontSize);
     ctx.textAlign = 'center';
 
     if (isSelected) {
-      ctx.fillStyle = '#e0a050';
+      ctx.fillStyle = VS.palette.textAccent;
     } else if (isActive) {
       ctx.fillStyle = 'rgba(78,204,163,0.5)';
     } else {
-      ctx.fillStyle = agent.isSubAgent ? '#9a9088' : '#d0c8b8';
+      ctx.fillStyle = agent.isSubAgent ? VS.palette.textDim : VS.palette.text;
     }
     ctx.fillText(displayName, Math.round(cx), Math.round(baseY));
 
-    ctx.fillStyle = isActive ? '#a0c8a0' : '#807870';
-    ctx.font = `${Math.round(fontSize * 0.8)}px "Courier New", monospace`;
+    ctx.fillStyle = isActive ? VS.palette.active : VS.palette.textDim;
+    ctx.font = pixelFont(Math.round(fontSize * 0.8));
     ctx.fillText(agent.activity, Math.round(cx), Math.round(baseY + fontSize + 2));
     ctx.textAlign = 'left';
   }
