@@ -106,19 +106,31 @@ def character(cell, char, state):
     if char == 'max':
         draw_head(d, cx, top)
         face(d, cx, top, 'typing' if state=='typing' else ('think' if state=='thinking' else 'idle'))
-        # hoodie + headphones
-        draw_body(d, cx, torso_y, 14, 16, COL['max_shirt'], COL['max_dark'])
-        R(d, cx-8, torso_y-1, 16, 3, COL['max_dark'])
-        R(d, cx-8, top+1, 2, 8, COL['outline']); R(d, cx+6, top+1, 2, 8, COL['outline'])
-        R(d, cx-7, top+2, 1, 6, COL['glow']); R(d, cx+6, top+2, 1, 6, COL['glow'])
+        # Protagonist hoodie (clean NES silhouette)
+        draw_body(d, cx, torso_y, 13, 16, '#2f74d0', '#1f4e92')
+        # Hoodie hood and drawstrings
+        R(d, cx-7, torso_y-1, 14, 3, '#1f4e92')
+        R(d, cx-2, torso_y+2, 1, 4, COL['white'])
+        R(d, cx+1, torso_y+2, 1, 4, COL['white'])
+        # Hair + small headset mic (less bulky than old headphones)
+        R(d, cx-5, top-1, 10, 2, '#6f3f20')
+        R(d, cx+6, top+5, 2, 1, COL['outline'])
+        R(d, cx+8, top+5, 1, 1, COL['glow'])
     elif char == 'chief':
         draw_head(d, cx, top)
-        # helmet
-        R(d, cx-7, top-2, 14, 4, COL['chief_dark'])
-        R(d, cx-7, top-2, 14, 2, COL['outline'])
-        R(d, cx-4, top+3, 8, 2, COL['visor'])
-        draw_body(d, cx, torso_y, 16, 18, COL['chief_armor'], COL['chief_dark'])
-        R(d, cx-6, torso_y+5, 12, 2, COL['visor'])
+        # Halo-style helmet with cleaner visor read
+        R(d, cx-7, top-3, 14, 5, '#365f2a')
+        R(d, cx-7, top-3, 14, 2, COL['outline'])
+        R(d, cx-6, top+2, 12, 1, '#4f8a39')
+        R(d, cx-4, top+4, 8, 3, COL['visor'])
+        R(d, cx-2, top+5, 4, 1, '#fff2b5')
+        # Armor torso + chest plate
+        draw_body(d, cx, torso_y, 15, 18, '#5a9342', '#355426')
+        R(d, cx-4, torso_y+3, 8, 3, '#6aa34b')
+        R(d, cx-6, torso_y+7, 12, 2, '#2b4a20')
+        # Shoulder pads
+        R(d, cx-10, torso_y+1, 3, 4, '#355426')
+        R(d, cx+7, torso_y+1, 3, 4, '#355426')
     elif char == 'cortana':
         draw_head(d, cx, top)
         face(d, cx, top, 'typing' if state=='typing' else ('think' if state=='thinking' else 'idle'))
