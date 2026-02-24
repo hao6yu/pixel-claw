@@ -68,6 +68,8 @@ export interface AgentState {
   assignedSeatId?: string;
   seated?: boolean;
   renderLayerY?: number;
+  wanderTimer?: number;       // countdown until next wander
+  wanderTarget?: Waypoint;    // current wander destination
 }
 
 export interface WsRequest {

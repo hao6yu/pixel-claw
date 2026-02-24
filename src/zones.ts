@@ -13,7 +13,7 @@ const DIVIDER_Y = 142;
 export const ZONES: Record<ZoneType, Zone> = {
   'lead-office': {
     type: 'lead-office',
-    x: 0, y: 142, w: 196, h: 114,
+    x: 196, y: 142, w: 124, h: 114,
     floorType: 'carpet',
   },
   'main-floor': {
@@ -28,7 +28,7 @@ export const ZONES: Record<ZoneType, Zone> = {
   },
   'sub-agent-zone': {
     type: 'sub-agent-zone',
-    x: 196, y: 142, w: 124, h: 114,
+    x: 0, y: 142, w: 196, h: 114,
     floorType: 'wood',
   },
 };
@@ -60,7 +60,20 @@ export const LAYOUT = {
 };
 
 const IDLE_BREAK_THRESHOLD = 30_000;
-const WALK_SPEED = 20;
+
+// Points of interest in the break room for idle wandering
+const BREAK_ROOM_POIS: Array<{ x: number; y: number; name: string }> = [
+  { x: 220, y: 55, name: 'coffee-machine' },    // top-right appliances
+  { x: 250, y: 55, name: 'microwave' },          // near microwave
+  { x: 290, y: 55, name: 'fridge' },             // fridge area
+  { x: 210, y: 90, name: 'meeting-table' },      // meeting table
+  { x: 270, y: 110, name: 'couch' },             // couch/lounge
+  { x: 10, y: 50, name: 'bookshelf-left' },      // left bookshelf
+  { x: 50, y: 50, name: 'bookshelf-right' },     // right bookshelf
+  { x: 160, y: 50, name: 'water-cooler' },       // near water cooler/door
+  { x: 80, y: 100, name: 'wander-center' },      // open floor
+];
+const WALK_SPEED = 40;
 const NAV_CELL = 4;
 const NAV_DEBUG = new URLSearchParams(window.location.search).has('navDebug') || localStorage.getItem('pixelclaw.navDebug') === '1';
 
@@ -85,18 +98,18 @@ export const OFFICE_SEAT_MAP: Record<ZoneType, Seat[]> = {
       id: 'lead-manager-0',
       zone: 'lead-office',
       role: 'manager',
-      desk: { x: 111, y: 214 },
-      seat: { x: 99, y: 214, facing: 'right' },
+      desk: { x: 244, y: 214 },
+      seat: { x: 244, y: 196, facing: 'left' },
     },
   ],
 
   'main-floor': [
-    { id: 'main-0', zone: 'main-floor', role: 'main', desk: { x: 39, y: 76 }, seat: { x: 27, y: 76, facing: 'right' } },
-    { id: 'main-1', zone: 'main-floor', role: 'main', desk: { x: 90, y: 76 }, seat: { x: 78, y: 76, facing: 'right' } },
-    { id: 'main-2', zone: 'main-floor', role: 'main', desk: { x: 141, y: 76 }, seat: { x: 129, y: 76, facing: 'right' } },
-    { id: 'main-3', zone: 'main-floor', role: 'main', desk: { x: 39, y: 122 }, seat: { x: 27, y: 122, facing: 'right' } },
-    { id: 'main-4', zone: 'main-floor', role: 'main', desk: { x: 90, y: 122 }, seat: { x: 78, y: 122, facing: 'right' } },
-    { id: 'main-5', zone: 'main-floor', role: 'main', desk: { x: 141, y: 122 }, seat: { x: 129, y: 122, facing: 'right' } },
+    { id: 'main-0', zone: 'main-floor', role: 'main', desk: { x: 39, y: 76 }, seat: { x: 39, y: 64, facing: 'down' } },
+    { id: 'main-1', zone: 'main-floor', role: 'main', desk: { x: 90, y: 76 }, seat: { x: 90, y: 64, facing: 'down' } },
+    { id: 'main-2', zone: 'main-floor', role: 'main', desk: { x: 141, y: 76 }, seat: { x: 141, y: 64, facing: 'down' } },
+    { id: 'main-3', zone: 'main-floor', role: 'main', desk: { x: 39, y: 122 }, seat: { x: 39, y: 110, facing: 'down' } },
+    { id: 'main-4', zone: 'main-floor', role: 'main', desk: { x: 90, y: 122 }, seat: { x: 90, y: 110, facing: 'down' } },
+    { id: 'main-5', zone: 'main-floor', role: 'main', desk: { x: 141, y: 122 }, seat: { x: 141, y: 110, facing: 'down' } },
   ],
 
   // Sub-agent work area has one dedicated desk/chair pair on this board.
@@ -105,8 +118,8 @@ export const OFFICE_SEAT_MAP: Record<ZoneType, Seat[]> = {
       id: 'sub-0',
       zone: 'sub-agent-zone',
       role: 'sub',
-      desk: { x: 244, y: 223 },
-      seat: { x: 232, y: 223, facing: 'right' },
+      desk: { x: 111, y: 214 },
+      seat: { x: 111, y: 196, facing: 'down' },
     },
   ],
 
@@ -197,13 +210,20 @@ class NavigationGrid {
       { x: 229, y: 214, w: 28, h: 18 },
       { x: 203, y: 152, w: 108, h: 20 },
       { x: 282, y: 236, w: 30, h: 16 },
+
+      // Vertical divider wall (x=196) with doorway gap at y=78-98
+      { x: 194, y: 38, w: 4, h: 40 },   // above doorway (y=38 to y=78)
+      { x: 194, y: 98, w: 4, h: 44 },   // below doorway (y=98 to y=142)
+
+      // Horizontal divider wall (y=142)
+      { x: 0, y: 140, w: 196, h: 4 },
     ];
 
     for (const block of blockers) {
       this.blockRect(block.x, block.y, block.w, block.h);
     }
 
-    // Ensure every seat tile is valid walk target.
+    // Ensure every seat tile is walkable.
     for (const seat of ALL_SEATS) {
       this.fillRect(seat.seat.x - 1, seat.seat.y - 1, 3, 3, true);
     }
@@ -288,7 +308,10 @@ class NavigationGrid {
     }
 
     const goalKey = `${goal.cx},${goal.cy}`;
-    if (!seen.has(goalKey)) return [endPt];
+    if (!seen.has(goalKey)) {
+      console.warn(`[nav] BFS FAILED: start=(${start.cx},${start.cy}) walkable=${this.isWalkableCell(start.cx,start.cy)}, goal=(${goal.cx},${goal.cy}) walkable=${this.isWalkableCell(goal.cx,goal.cy)}, visited=${seen.size} cells`);
+      return [endPt];
+    }
 
     const pathCells: Cell[] = [];
     let curKey: string | undefined = goalKey;
@@ -358,12 +381,14 @@ class NavigationGrid {
 export class ZoneManager {
   private leadAgentId: string | null = null;
   private nav = new NavigationGrid();
+  private _debugTimer = 0;
+  private _debugLoggedAgents?: Set<string>;
 
   assignZone(agent: AgentState, allMainAgents: AgentState[]): ZoneType {
     if (agent.isSubAgent) return 'sub-agent-zone';
 
     const now = Date.now();
-    if (agent.activity === 'sleeping' || (agent.activity === 'idle' && now - agent.lastActiveAt > IDLE_BREAK_THRESHOLD)) {
+    if (agent.activity === 'sleeping' || (agent.activity === 'idle' && now - agent.lastActiveAt > 10_000)) {
       return 'break-room';
     }
 
@@ -411,11 +436,43 @@ export class ZoneManager {
   }
 
   update(agents: Map<string, AgentState>, dt: number): void {
+    this._debugTimer += dt;
     const allAgents = Array.from(agents.values());
     const mainAgents = allAgents.filter((agent) => !agent.isSubAgent);
     const occupied = new Set<string>();
 
     for (const agent of allAgents) {
+      // Don't reassign zone while walking — direct line movement to target
+      if (agent.activity === 'walking' && agent.targetX !== undefined && agent.targetY !== undefined) {
+        const dx = agent.targetX - agent.x;
+        const dy = agent.targetY - agent.y;
+        const dist = Math.hypot(dx, dy);
+        const step = WALK_SPEED * dt;
+
+        if (dist > 1) {
+          if (Math.abs(dx) >= Math.abs(dy)) {
+            agent.facing = dx > 0 ? 'right' : 'left';
+          } else {
+            agent.facing = dy > 0 ? 'down' : 'up';
+          }
+        }
+
+        if (dist <= step || dist < 0.5) {
+          agent.x = agent.targetX;
+          agent.y = agent.targetY;
+          agent.zone = agent.targetZone || agent.zone;
+          agent.activity = agent.previousActivity || 'idle';
+          agent.previousActivity = undefined;
+          agent.targetZone = undefined;
+        } else {
+          agent.x += (dx / dist) * step;
+          agent.y += (dy / dist) * step;
+        }
+
+        agent.seated = false;
+        agent.renderLayerY = agent.y + 20;
+        continue;
+      }
       const newZone = this.assignZone(agent, mainAgents);
       const seat = this.chooseSeat(agent, newZone, occupied);
       const target = this.nav.clampToNearestWalkable(seat.seat.x, seat.seat.y);
@@ -441,56 +498,59 @@ export class ZoneManager {
         agent.zone = newZone;
       }
 
+      const alreadyInBreakRoom = agent.zone === 'break-room' && newZone === 'break-room';
       const shouldWalk =
         agent.activity !== 'walking' &&
+        !alreadyInBreakRoom &&
         (agent.zone !== newZone || changedTarget || Math.hypot(agent.x - target.x, agent.y - target.y) > 2);
 
-      if (shouldWalk) {
-        agent.targetZone = newZone;
-        agent.previousActivity = agent.activity;
-        agent.activity = 'walking';
-        agent.seated = false;
-        agent.walkPath = this.nav.findPath(agent.x, agent.y, target.x, target.y);
-        agent.walkIndex = 0;
-      }
-
-      if (agent.activity === 'walking' && agent.walkPath && agent.walkIndex !== undefined) {
-        const waypoint = agent.walkPath[agent.walkIndex];
-        if (waypoint) {
-          const dx = waypoint.x - agent.x;
-          const dy = waypoint.y - agent.y;
-          const dist = Math.hypot(dx, dy);
-          const step = WALK_SPEED * dt;
-
-          if (Math.abs(dx) > Math.abs(dy)) {
-            agent.facing = dx >= 0 ? 'right' : 'left';
-          } else if (Math.abs(dy) > 0.1) {
-            agent.facing = dy >= 0 ? 'down' : 'up';
-          }
-
-          if (dist <= step || dist < 0.001) {
-            agent.x = waypoint.x;
-            agent.y = waypoint.y;
-            agent.walkIndex += 1;
-
-            if (agent.walkIndex >= agent.walkPath.length) {
-              agent.zone = agent.targetZone || newZone;
-              agent.activity = agent.previousActivity || 'idle';
-              agent.walkPath = undefined;
-              agent.walkIndex = undefined;
-              agent.previousActivity = undefined;
-              agent.targetZone = undefined;
-            }
-          } else {
-            agent.x += (dx / dist) * step;
-            agent.y += (dy / dist) * step;
-          }
+      // Debug every frame for first 20s
+      if (!agent.isSubAgent && this._debugTimer < 20) {
+        if (!this._debugLoggedAgents) this._debugLoggedAgents = new Set();
+        const key = `${agent.agentId}-${newZone}-${agent.activity}`;
+        if (!this._debugLoggedAgents.has(key)) {
+          this._debugLoggedAgents.add(key);
+          console.log(`[zone] ${agent.agentId}: zone=${agent.zone} newZone=${newZone} activity=${agent.activity} shouldWalk=${shouldWalk} alreadyInBreak=${alreadyInBreakRoom} pos=(${agent.x.toFixed(0)},${agent.y.toFixed(0)}) lastActive=${((Date.now()-agent.lastActiveAt)/1000).toFixed(0)}s`);
         }
       }
 
-      const corrected = this.nav.clampToNearestWalkable(agent.x, agent.y);
-      agent.x = corrected.x;
-      agent.y = corrected.y;
+      if (shouldWalk) {
+        agent.targetZone = newZone;
+        agent.targetX = target.x;
+        agent.targetY = target.y;
+        agent.previousActivity = agent.activity;
+        agent.activity = 'walking';
+        agent.seated = false;
+      }
+
+      // No position clamping — direct movement handles positioning
+
+      // Break-room idle wandering
+      const inBreakIdle = agent.zone === 'break-room' && agent.activity !== 'walking' && agent.activity !== 'sleeping';
+      if (inBreakIdle && agent.wanderTimer !== undefined && agent.wanderTimer < 0.1 && agent.wanderTimer > -0.1) {
+        console.log(`[wander] ${agent.agentId}: timer=${agent.wanderTimer?.toFixed(2)}, pos=(${agent.x.toFixed(0)},${agent.y.toFixed(0)}), zone=${agent.zone}`);
+      }
+      if (inBreakIdle) {
+        if (agent.wanderTimer === undefined) {
+          agent.wanderTimer = 2 + Math.random() * 3; // 2-5 seconds before first wander
+        }
+        agent.wanderTimer -= dt;
+        if (agent.wanderTimer <= 0) {
+          // Pick a random POI
+          const poi = BREAK_ROOM_POIS[Math.floor(Math.random() * BREAK_ROOM_POIS.length)];
+          const dist = Math.hypot(poi.x - agent.x, poi.y - agent.y);
+          if (dist > 8) {
+            agent.previousActivity = agent.activity;
+            agent.activity = 'walking';
+            agent.seated = false;
+            agent.targetX = poi.x;
+            agent.targetY = poi.y;
+          }
+          agent.wanderTimer = 3 + Math.random() * 6; // 3-9 seconds until next wander
+        }
+      } else if (agent.zone !== 'break-room') {
+        agent.wanderTimer = undefined;
+      }
 
       agent.seated = agent.activity !== 'walking' && agent.activity !== 'sleeping' && agent.zone !== 'break-room';
       if (agent.seated) {

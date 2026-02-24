@@ -66,9 +66,9 @@ function getFrameX(activity: AgentActivity, globalTime: number, seated: boolean)
 }
 
 function getRowY(facing: FacingDirection): number {
-  if (facing === 'up') return FRAME_H * 2;
-  if (facing === 'left' || facing === 'right') return FRAME_H;
-  return 0;
+  if (facing === 'up') return FRAME_H;          // row 1 = back/up view
+  if (facing === 'left' || facing === 'right') return FRAME_H * 2;  // row 2 = side profile
+  return 0;                                      // row 0 = front/down view
 }
 
 export function drawCharacter(
@@ -92,11 +92,12 @@ export function drawCharacter(
 
   const frameX = getFrameX(activity, globalTime, seated);
   const rowY = getRowY(facing);
+  // facing indicator removed
   const bob = activity === 'walking' ? Math.round(Math.abs(Math.sin(globalTime * 12)) * scale) : 0;
   const drawX = Math.round(baseX);
   const drawY = Math.round(baseY - bob);
 
-  if (facing === 'right') {
+  if (facing === 'left') {
     ctx.save();
     ctx.translate(drawX + Math.round(FRAME_W * scale), 0);
     ctx.scale(-1, 1);

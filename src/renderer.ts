@@ -14,7 +14,7 @@ import { VS, pixelFont } from './visual-system';
 const SUB_SCALE_FACTOR = 0.8;
 const SHOW_AGENT_LABELS = false;
 const USE_DONARG_BACKGROUND = true;
-const DONARG_BG_SRC = '/assets/donarg/office-right-facing.png';
+const DONARG_BG_SRC = '/assets/donarg/office-level-4-custom.png';
 const DONARG_BOARD_SRC = { x: 22, y: 258, w: 596, h: 520 }; // trimmed to actual office board bounds
 
 export class Renderer {
