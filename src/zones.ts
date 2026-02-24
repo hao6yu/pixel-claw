@@ -5,29 +5,30 @@ const VW = 320;
 const VH = 256;
 const WALL_H = 38;
 
-// Zone layout tuned to curated Donarg crop composition
+// Legacy fallback-divider values (only used for non-Donarg fallback wall rendering)
 const DIVIDER_X = 196;
 const DIVIDER_Y = 142;
 
+// Keep zone names stable for behavior logic, but anchor them to Donarg board regions.
 export const ZONES: Record<ZoneType, Zone> = {
   'lead-office': {
     type: 'lead-office',
-    x: 0, y: WALL_H, w: DIVIDER_X, h: DIVIDER_Y - WALL_H,
+    x: 0, y: 142, w: 196, h: 114,
     floorType: 'carpet',
   },
   'main-floor': {
     type: 'main-floor',
-    x: DIVIDER_X + 2, y: WALL_H, w: VW - DIVIDER_X - 2, h: DIVIDER_Y - WALL_H,
+    x: 0, y: 38, w: 196, h: 104,
     floorType: 'wood',
   },
   'break-room': {
     type: 'break-room',
-    x: 0, y: DIVIDER_Y + 2, w: DIVIDER_X, h: VH - DIVIDER_Y - 2,
+    x: 196, y: 38, w: 124, h: 104,
     floorType: 'tile',
   },
   'sub-agent-zone': {
     type: 'sub-agent-zone',
-    x: DIVIDER_X + 2, y: DIVIDER_Y + 2, w: VW - DIVIDER_X - 2, h: VH - DIVIDER_Y - 2,
+    x: 196, y: 142, w: 124, h: 114,
     floorType: 'wood',
   },
 };
@@ -38,6 +39,7 @@ export const LAYOUT = {
   WALL_H,
   DIVIDER_X,
   DIVIDER_Y,
+  // Fallback-only desk layout constants (background-off mode)
   LEAD_DESK_X: 258,
   LEAD_DESK_Y: 232,
   MAIN_DESKS_PER_ROW: 3,
@@ -65,59 +67,90 @@ const NAV_DEBUG = new URLSearchParams(window.location.search).has('navDebug') ||
 type Cell = { cx: number; cy: number };
 type Rect = { x: number; y: number; w: number; h: number };
 
-type Seat = {
+type SeatRole = 'manager' | 'main' | 'sub' | 'break';
+
+export type Seat = {
   id: string;
   zone: ZoneType;
-  x: number;
-  y: number;
-  facing: FacingDirection;
-  role?: 'manager' | 'main' | 'sub' | 'break';
+  role: SeatRole;
+  desk: { x: number; y: number };
+  seat: { x: number; y: number; facing: FacingDirection };
 };
 
-const LEAD_SEAT: Seat = {
-  id: 'lead-manager-seat',
-  zone: 'lead-office',
-  x: LAYOUT.LEAD_DESK_X,
-  y: LAYOUT.LEAD_DESK_Y,
-  facing: 'up',
-  role: 'manager',
+// Donarg office board seat map (virtual 320x256 space).
+// Coordinates are intentionally explicit and layout-driven for future tuning.
+export const OFFICE_SEAT_MAP: Record<ZoneType, Seat[]> = {
+  'lead-office': [
+    {
+      id: 'lead-manager-0',
+      zone: 'lead-office',
+      role: 'manager',
+      desk: { x: 111, y: 214 },
+      seat: { x: 111, y: 205, facing: 'left' },
+    },
+  ],
+
+  'main-floor': [
+    { id: 'main-0', zone: 'main-floor', role: 'main', desk: { x: 39, y: 76 }, seat: { x: 39, y: 85, facing: 'down' } },
+    { id: 'main-1', zone: 'main-floor', role: 'main', desk: { x: 90, y: 76 }, seat: { x: 90, y: 85, facing: 'down' } },
+    { id: 'main-2', zone: 'main-floor', role: 'main', desk: { x: 141, y: 76 }, seat: { x: 141, y: 85, facing: 'down' } },
+    { id: 'main-3', zone: 'main-floor', role: 'main', desk: { x: 39, y: 122 }, seat: { x: 39, y: 131, facing: 'down' } },
+    { id: 'main-4', zone: 'main-floor', role: 'main', desk: { x: 90, y: 122 }, seat: { x: 90, y: 131, facing: 'down' } },
+    { id: 'main-5', zone: 'main-floor', role: 'main', desk: { x: 141, y: 122 }, seat: { x: 141, y: 131, facing: 'down' } },
+  ],
+
+  // Sub-agent work area has one dedicated desk/chair pair on this board.
+  'sub-agent-zone': [
+    {
+      id: 'sub-0',
+      zone: 'sub-agent-zone',
+      role: 'sub',
+      desk: { x: 244, y: 223 },
+      seat: { x: 244, y: 232, facing: 'down' },
+    },
+  ],
+
+  // Break room uses visible meeting-table chairs.
+  'break-room': [
+    {
+      id: 'break-0',
+      zone: 'break-room',
+      role: 'break',
+      desk: { x: 257, y: 90 },
+      seat: { x: 257, y: 76, facing: 'up' },
+    },
+    {
+      id: 'break-1',
+      zone: 'break-room',
+      role: 'break',
+      desk: { x: 286, y: 90 },
+      seat: { x: 286, y: 76, facing: 'up' },
+    },
+    {
+      id: 'break-2',
+      zone: 'break-room',
+      role: 'break',
+      desk: { x: 257, y: 100 },
+      seat: { x: 242, y: 108, facing: 'right' },
+    },
+    {
+      id: 'break-3',
+      zone: 'break-room',
+      role: 'break',
+      desk: { x: 271, y: 100 },
+      seat: { x: 288, y: 108, facing: 'left' },
+    },
+  ],
 };
 
-const MAIN_SEATS: Seat[] = Array.from({ length: 12 }, (_, i) => {
-  const col = i % LAYOUT.MAIN_DESKS_PER_ROW;
-  const row = Math.floor(i / LAYOUT.MAIN_DESKS_PER_ROW);
-  return {
-    id: `main-seat-${i}`,
-    zone: 'main-floor' as const,
-    x: LAYOUT.MAIN_DESK_START_X + col * LAYOUT.MAIN_DESK_SPACING_X,
-    y: LAYOUT.MAIN_DESK_START_Y + row * LAYOUT.MAIN_DESK_SPACING_Y,
-    facing: 'up' as const,
-    role: 'main' as const,
-  };
-});
-
-const SUB_SEATS: Seat[] = Array.from({ length: 12 }, (_, i) => {
-  const col = i % LAYOUT.SUB_PER_ROW;
-  const row = Math.floor(i / LAYOUT.SUB_PER_ROW);
-  return {
-    id: `sub-seat-${i}`,
-    zone: 'sub-agent-zone' as const,
-    x: LAYOUT.SUB_START_X + col * LAYOUT.SUB_SPACING_X,
-    y: LAYOUT.SUB_START_Y + row * LAYOUT.SUB_SPACING_Y,
-    facing: 'up' as const,
-    role: 'sub' as const,
-  };
-});
-
-const BREAK_SEATS: Seat[] = [
-  { id: 'break-seat-0', zone: 'break-room', x: LAYOUT.BREAK_START_X, y: LAYOUT.BREAK_START_Y + 10, facing: 'down', role: 'break' },
-  { id: 'break-seat-1', zone: 'break-room', x: LAYOUT.BREAK_START_X + LAYOUT.BREAK_SPACING_X, y: LAYOUT.BREAK_START_Y + 10, facing: 'down', role: 'break' },
-  { id: 'break-seat-2', zone: 'break-room', x: LAYOUT.BREAK_START_X + LAYOUT.BREAK_SPACING_X * 2, y: LAYOUT.BREAK_START_Y + 10, facing: 'left', role: 'break' },
-  { id: 'break-seat-3', zone: 'break-room', x: LAYOUT.BREAK_START_X + LAYOUT.BREAK_SPACING_X * 3, y: LAYOUT.BREAK_START_Y + 10, facing: 'right', role: 'break' },
+const ALL_SEATS: Seat[] = [
+  ...OFFICE_SEAT_MAP['lead-office'],
+  ...OFFICE_SEAT_MAP['main-floor'],
+  ...OFFICE_SEAT_MAP['sub-agent-zone'],
+  ...OFFICE_SEAT_MAP['break-room'],
 ];
 
-const ALL_SEATS: Seat[] = [LEAD_SEAT, ...MAIN_SEATS, ...SUB_SEATS, ...BREAK_SEATS];
-const SEAT_MAP = new Map(ALL_SEATS.map(s => [s.id, s] as const));
+const SEAT_MAP = new Map(ALL_SEATS.map((seat) => [seat.id, seat] as const));
 
 class NavigationGrid {
   readonly cellSize = NAV_CELL;
@@ -125,28 +158,55 @@ class NavigationGrid {
   readonly height = Math.ceil(VH / NAV_CELL);
   private walkable: boolean[] = new Array(this.width * this.height).fill(false);
 
-  constructor() { this.rebuild(); }
+  constructor() {
+    this.rebuild();
+  }
 
   rebuild(): void {
     this.walkable.fill(false);
-    for (const zone of Object.values(ZONES)) this.fillRect(zone.x, zone.y, zone.w, zone.h, true);
 
-    this.blockRect(0, 0, VW, WALL_H);
-    this.blockRect(DIVIDER_X, WALL_H, 2, LAYOUT.DOORWAY_Y - WALL_H);
-    this.blockRect(DIVIDER_X, LAYOUT.DOORWAY_Y + LAYOUT.DOORWAY_H, 2, DIVIDER_Y - (LAYOUT.DOORWAY_Y + LAYOUT.DOORWAY_H));
-    this.blockRect(0, DIVIDER_Y, VW, 2);
+    // Interior floor region of board; keep hard boundary so agents cannot leave board.
+    this.fillRect(6, 6, VW - 12, VH - 12, true);
 
-    const blockers: Rect[] = [];
-    for (const seat of MAIN_SEATS) blockers.push({ x: seat.x + 2, y: seat.y + 6, w: 28, h: 14 });
-    blockers.push({ x: LEAD_SEAT.x + 2, y: LEAD_SEAT.y + 6, w: 28, h: 14 });
+    const blockers: Rect[] = [
+      // Top wall fixtures
+      { x: 8, y: 10, w: 146, h: 20 },
+      { x: 196, y: 10, w: 118, h: 20 },
 
-    const breakY = LAYOUT.DIVIDER_Y + 8;
-    blockers.push({ x: LAYOUT.BREAK_START_X + 8, y: breakY + 2, w: 16, h: 30 });
-    blockers.push({ x: LAYOUT.BREAK_START_X + 28, y: breakY + 2, w: 20, h: 34 });
-    blockers.push({ x: LAYOUT.BREAK_START_X + 58, y: breakY + 10, w: 20, h: 24 });
-    blockers.push({ x: LAYOUT.BREAK_START_X + 92, y: breakY + 26, w: 30, h: 14 });
+      // Main-floor 6 desks
+      { x: 25, y: 58, w: 28, h: 18 },
+      { x: 76, y: 58, w: 28, h: 18 },
+      { x: 127, y: 58, w: 28, h: 18 },
+      { x: 25, y: 104, w: 28, h: 18 },
+      { x: 76, y: 104, w: 28, h: 18 },
+      { x: 127, y: 104, w: 28, h: 18 },
 
-    for (const b of blockers) this.blockRect(b.x, b.y, b.w, b.h);
+      // Break-room tables
+      { x: 247, y: 80, w: 48, h: 18 },
+      { x: 250, y: 100, w: 40, h: 18 },
+
+      // Lead-office desk
+      { x: 102, y: 206, w: 46, h: 18 },
+
+      // Lounge + decor
+      { x: 18, y: 186, w: 40, h: 10 },
+      { x: 157, y: 182, w: 40, h: 14 },
+      { x: 130, y: 242, w: 40, h: 10 },
+
+      // Sub-agent desk and lower-right fixtures
+      { x: 229, y: 214, w: 28, h: 18 },
+      { x: 203, y: 152, w: 108, h: 20 },
+      { x: 282, y: 236, w: 30, h: 16 },
+    ];
+
+    for (const block of blockers) {
+      this.blockRect(block.x, block.y, block.w, block.h);
+    }
+
+    // Ensure every seat tile is valid walk target.
+    for (const seat of ALL_SEATS) {
+      this.fillRect(seat.seat.x - 1, seat.seat.y - 1, 3, 3, true);
+    }
   }
 
   isWalkableCell(cx: number, cy: number): boolean {
@@ -161,7 +221,10 @@ class NavigationGrid {
   }
 
   toPoint(cell: Cell): Waypoint {
-    return { x: Math.round(cell.cx * this.cellSize + this.cellSize / 2), y: Math.round(cell.cy * this.cellSize + this.cellSize / 2) };
+    return {
+      x: Math.round(cell.cx * this.cellSize + this.cellSize / 2),
+      y: Math.round(cell.cy * this.cellSize + this.cellSize / 2),
+    };
   }
 
   clampToNearestWalkable(x: number, y: number): Waypoint {
@@ -170,18 +233,27 @@ class NavigationGrid {
 
     const q: Cell[] = [start];
     const seen = new Set([`${start.cx},${start.cy}`]);
-    while (q.length) {
+    while (q.length > 0) {
       const cur = q.shift()!;
-      for (const n of [{ cx: cur.cx + 1, cy: cur.cy }, { cx: cur.cx - 1, cy: cur.cy }, { cx: cur.cx, cy: cur.cy + 1 }, { cx: cur.cx, cy: cur.cy - 1 }]) {
-        if (n.cx < 0 || n.cx >= this.width || n.cy < 0 || n.cy >= this.height) continue;
-        const key = `${n.cx},${n.cy}`;
+      for (const next of [
+        { cx: cur.cx + 1, cy: cur.cy },
+        { cx: cur.cx - 1, cy: cur.cy },
+        { cx: cur.cx, cy: cur.cy + 1 },
+        { cx: cur.cx, cy: cur.cy - 1 },
+      ]) {
+        if (next.cx < 0 || next.cx >= this.width || next.cy < 0 || next.cy >= this.height) continue;
+        const key = `${next.cx},${next.cy}`;
         if (seen.has(key)) continue;
-        if (this.isWalkableCell(n.cx, n.cy)) return this.toPoint(n);
+        if (this.isWalkableCell(next.cx, next.cy)) return this.toPoint(next);
         seen.add(key);
-        q.push(n);
+        q.push(next);
       }
     }
-    return { x: Math.round(x), y: Math.round(y) };
+
+    return {
+      x: Math.max(0, Math.min(VW - 1, Math.round(x))),
+      y: Math.max(0, Math.min(VH - 1, Math.round(y))),
+    };
   }
 
   findPath(startX: number, startY: number, endX: number, endY: number): Waypoint[] {
@@ -189,22 +261,29 @@ class NavigationGrid {
     const endPt = this.clampToNearestWalkable(endX, endY);
     const start = this.toCell(startPt.x, startPt.y);
     const goal = this.toCell(endPt.x, endPt.y);
+
     if (start.cx === goal.cx && start.cy === goal.cy) return [endPt];
 
     const q: Cell[] = [start];
     const parent = new Map<string, string>();
     const seen = new Set([`${start.cx},${start.cy}`]);
 
-    while (q.length) {
+    while (q.length > 0) {
       const cur = q.shift()!;
       if (cur.cx === goal.cx && cur.cy === goal.cy) break;
-      for (const n of [{ cx: cur.cx + 1, cy: cur.cy }, { cx: cur.cx - 1, cy: cur.cy }, { cx: cur.cx, cy: cur.cy + 1 }, { cx: cur.cx, cy: cur.cy - 1 }]) {
-        if (!this.isWalkableCell(n.cx, n.cy)) continue;
-        const nKey = `${n.cx},${n.cy}`;
-        if (seen.has(nKey)) continue;
-        seen.add(nKey);
-        parent.set(nKey, `${cur.cx},${cur.cy}`);
-        q.push(n);
+
+      for (const next of [
+        { cx: cur.cx + 1, cy: cur.cy },
+        { cx: cur.cx - 1, cy: cur.cy },
+        { cx: cur.cx, cy: cur.cy + 1 },
+        { cx: cur.cx, cy: cur.cy - 1 },
+      ]) {
+        if (!this.isWalkableCell(next.cx, next.cy)) continue;
+        const nextKey = `${next.cx},${next.cy}`;
+        if (seen.has(nextKey)) continue;
+        seen.add(nextKey);
+        parent.set(nextKey, `${cur.cx},${cur.cy}`);
+        q.push(next);
       }
     }
 
@@ -219,8 +298,9 @@ class NavigationGrid {
       if (curKey === `${start.cx},${start.cy}`) break;
       curKey = parent.get(curKey);
     }
+
     pathCells.reverse();
-    const points = pathCells.map(c => this.toPoint(c));
+    const points = pathCells.map((cell) => this.toPoint(cell));
     points[points.length - 1] = endPt;
 
     const simplified: Waypoint[] = [];
@@ -238,6 +318,7 @@ class NavigationGrid {
       const dy2 = Math.sign(c.y - b.y);
       if (dx1 !== dx2 || dy1 !== dy2) simplified.push(b);
     }
+
     return simplified;
   }
 
@@ -248,7 +329,12 @@ class NavigationGrid {
       for (let cx = 0; cx < this.width; cx++) {
         const ok = this.isWalkableCell(cx, cy);
         ctx.fillStyle = ok ? 'rgba(80,220,120,0.18)' : 'rgba(220,70,70,0.10)';
-        ctx.fillRect(Math.round(cx * this.cellSize * s), Math.round(cy * this.cellSize * s), Math.ceil(this.cellSize * s), Math.ceil(this.cellSize * s));
+        ctx.fillRect(
+          Math.round(cx * this.cellSize * s),
+          Math.round(cy * this.cellSize * s),
+          Math.ceil(this.cellSize * s),
+          Math.ceil(this.cellSize * s),
+        );
       }
     }
     ctx.restore();
@@ -258,62 +344,67 @@ class NavigationGrid {
     const c0 = this.toCell(x, y);
     const c1 = this.toCell(x + Math.max(0, w - 1), y + Math.max(0, h - 1));
     for (let cy = c0.cy; cy <= c1.cy; cy++) {
-      for (let cx = c0.cx; cx <= c1.cx; cx++) this.walkable[cy * this.width + cx] = value;
+      for (let cx = c0.cx; cx <= c1.cx; cx++) {
+        this.walkable[cy * this.width + cx] = value;
+      }
     }
   }
-  private blockRect(x: number, y: number, w: number, h: number): void { this.fillRect(x, y, w, h, false); }
+
+  private blockRect(x: number, y: number, w: number, h: number): void {
+    this.fillRect(x, y, w, h, false);
+  }
 }
 
 export class ZoneManager {
   private leadAgentId: string | null = null;
   private nav = new NavigationGrid();
 
-  assignZone(agent: AgentState, allAgents: AgentState[]): ZoneType {
+  assignZone(agent: AgentState, allMainAgents: AgentState[]): ZoneType {
     if (agent.isSubAgent) return 'sub-agent-zone';
+
     const now = Date.now();
-    if (agent.activity === 'sleeping' || (agent.activity === 'idle' && now - agent.lastActiveAt > IDLE_BREAK_THRESHOLD)) return 'break-room';
-    if (this.isLeadAgent(agent, allAgents)) return 'lead-office';
+    if (agent.activity === 'sleeping' || (agent.activity === 'idle' && now - agent.lastActiveAt > IDLE_BREAK_THRESHOLD)) {
+      return 'break-room';
+    }
+
+    if (this.isLeadAgent(agent, allMainAgents)) return 'lead-office';
     return 'main-floor';
   }
 
-  private isLeadAgent(agent: AgentState, allAgents: AgentState[]): boolean {
+  private isLeadAgent(agent: AgentState, allMainAgents: AgentState[]): boolean {
     if (agent.isSubAgent) return false;
     if (agent.agentId.toLowerCase().includes('max') || agent.agentId.toLowerCase().includes('main')) return true;
 
     if (!this.leadAgentId) {
-      const mainAgents = allAgents.filter(a => !a.isSubAgent);
-      this.leadAgentId = mainAgents.find(a => a.agentId.toLowerCase().includes('main'))?.agentId || mainAgents[0]?.agentId || null;
+      this.leadAgentId =
+        allMainAgents.find((a) => a.agentId.toLowerCase().includes('main'))?.agentId ||
+        allMainAgents[0]?.agentId ||
+        null;
     }
+
     return agent.agentId === this.leadAgentId;
   }
 
   private seatsForZone(zone: ZoneType): Seat[] {
-    switch (zone) {
-      case 'lead-office': return [LEAD_SEAT];
-      case 'main-floor': return MAIN_SEATS;
-      case 'sub-agent-zone': return SUB_SEATS;
-      case 'break-room': return BREAK_SEATS;
-    }
+    return OFFICE_SEAT_MAP[zone];
   }
 
   private chooseSeat(agent: AgentState, zone: ZoneType, occupied: Set<string>): Seat {
-    const zoneSeats = this.seatsForZone(zone);
-    const current = agent.assignedSeatId ? SEAT_MAP.get(agent.assignedSeatId) : undefined;
-    if (current && current.zone === zone && !occupied.has(current.id)) {
-      occupied.add(current.id);
-      return current;
+    const seats = this.seatsForZone(zone);
+    const previous = agent.assignedSeatId ? SEAT_MAP.get(agent.assignedSeatId) : undefined;
+
+    if (previous && previous.zone === zone && !occupied.has(previous.id)) {
+      occupied.add(previous.id);
+      return previous;
     }
 
-    const free = zoneSeats.filter(s => !occupied.has(s.id));
-    const pool = free.length ? free : zoneSeats;
+    const freeSeats = seats.filter((seat) => !occupied.has(seat.id));
+    const pool = freeSeats.length > 0 ? freeSeats : seats;
 
-    let chosen = pool[0];
-    if (zone === 'lead-office') {
-      chosen = LEAD_SEAT;
-    } else if (zone === 'sub-agent-zone') {
-      const hint = Math.abs(agent.agentId.split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7));
-      chosen = pool[hint % pool.length];
-    }
+    // deterministic assignment by agent key hash (stable baseline)
+    const seed = `${agent.agentId}:${agent.sessionKey}`;
+    const hash = Math.abs(seed.split('').reduce((acc, ch) => ((acc * 33) ^ ch.charCodeAt(0)) | 0, 5381));
+    const chosen = pool[hash % pool.length];
 
     occupied.add(chosen.id);
     return chosen;
@@ -321,61 +412,74 @@ export class ZoneManager {
 
   update(agents: Map<string, AgentState>, dt: number): void {
     const allAgents = Array.from(agents.values());
-    const mainAgents = allAgents.filter(a => !a.isSubAgent);
+    const mainAgents = allAgents.filter((agent) => !agent.isSubAgent);
     const occupied = new Set<string>();
 
     for (const agent of allAgents) {
       const newZone = this.assignZone(agent, mainAgents);
       const seat = this.chooseSeat(agent, newZone, occupied);
-      const target = this.nav.clampToNearestWalkable(seat.x, seat.y);
+      const target = this.nav.clampToNearestWalkable(seat.seat.x, seat.seat.y);
+
+      const changedTarget =
+        agent.targetX === undefined ||
+        agent.targetY === undefined ||
+        Math.abs(agent.targetX - target.x) > 0.5 ||
+        Math.abs(agent.targetY - target.y) > 0.5;
 
       agent.assignedSeatId = seat.id;
       agent.targetX = target.x;
       agent.targetY = target.y;
-      agent.facing = seat.facing;
 
-      if (agent.zone && (agent.zone !== newZone || agent.activity === 'walking' && (Math.abs(agent.targetX - target.x) > 0.5 || Math.abs(agent.targetY - target.y) > 0.5)) && agent.activity !== 'walking') {
+      if (!agent.zone) {
+        agent.zone = newZone;
+      }
+
+      // First spawn: place directly at seat and avoid spawn jitter.
+      if (agent.x === 0 && agent.y === 0) {
+        agent.x = target.x;
+        agent.y = target.y;
+        agent.zone = newZone;
+      }
+
+      const shouldWalk =
+        agent.activity !== 'walking' &&
+        (agent.zone !== newZone || changedTarget || Math.hypot(agent.x - target.x, agent.y - target.y) > 2);
+
+      if (shouldWalk) {
         agent.targetZone = newZone;
         agent.previousActivity = agent.activity;
         agent.activity = 'walking';
         agent.seated = false;
-        agent.walkPath = this.calculatePath(agent, target);
+        agent.walkPath = this.nav.findPath(agent.x, agent.y, target.x, target.y);
         agent.walkIndex = 0;
-      } else if (!agent.zone || agent.activity !== 'walking') {
-        agent.zone = newZone;
-        if (agent.x === 0 && agent.y === 0) {
-          agent.x = target.x;
-          agent.y = target.y;
-        }
       }
 
-      const corrected = this.nav.clampToNearestWalkable(agent.x, agent.y);
-      agent.x = corrected.x;
-      agent.y = corrected.y;
-
       if (agent.activity === 'walking' && agent.walkPath && agent.walkIndex !== undefined) {
-        const wp = agent.walkPath[agent.walkIndex];
-        if (wp) {
-          const dx = wp.x - agent.x;
-          const dy = wp.y - agent.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+        const waypoint = agent.walkPath[agent.walkIndex];
+        if (waypoint) {
+          const dx = waypoint.x - agent.x;
+          const dy = waypoint.y - agent.y;
+          const dist = Math.hypot(dx, dy);
           const step = WALK_SPEED * dt;
 
-          if (Math.abs(dx) > Math.abs(dy)) agent.facing = dx >= 0 ? 'right' : 'left';
-          else if (Math.abs(dy) > 0.1) agent.facing = dy >= 0 ? 'down' : 'up';
+          if (Math.abs(dx) > Math.abs(dy)) {
+            agent.facing = dx >= 0 ? 'right' : 'left';
+          } else if (Math.abs(dy) > 0.1) {
+            agent.facing = dy >= 0 ? 'down' : 'up';
+          }
 
-          if (dist <= step) {
-            agent.x = wp.x;
-            agent.y = wp.y;
-            agent.walkIndex++;
+          if (dist <= step || dist < 0.001) {
+            agent.x = waypoint.x;
+            agent.y = waypoint.y;
+            agent.walkIndex += 1;
+
             if (agent.walkIndex >= agent.walkPath.length) {
-              agent.zone = agent.targetZone!;
+              agent.zone = agent.targetZone || newZone;
               agent.activity = agent.previousActivity || 'idle';
               agent.walkPath = undefined;
               agent.walkIndex = undefined;
               agent.previousActivity = undefined;
               agent.targetZone = undefined;
-              agent.facing = seat.facing;
             }
           } else {
             agent.x += (dx / dist) * step;
@@ -384,20 +488,32 @@ export class ZoneManager {
         }
       }
 
+      const corrected = this.nav.clampToNearestWalkable(agent.x, agent.y);
+      agent.x = corrected.x;
+      agent.y = corrected.y;
+
       agent.seated = agent.activity !== 'walking' && agent.activity !== 'sleeping' && agent.zone !== 'break-room';
+      if (agent.seated) {
+        // while seated, face exactly with chair orientation
+        agent.facing = seat.seat.facing;
+      }
+
       agent.renderLayerY = agent.seated ? agent.y - 2 : agent.y + 20;
 
-      if (agent.isSubAgent && agent.spawnAlpha === undefined) agent.spawnAlpha = 0;
+      if (agent.isSubAgent && agent.spawnAlpha === undefined) {
+        agent.spawnAlpha = 0;
+      }
       if (agent.isSubAgent && agent.spawnAlpha !== undefined && agent.spawnAlpha < 1) {
         agent.spawnAlpha = Math.min(1, agent.spawnAlpha + dt * 2);
       }
     }
   }
 
-  private calculatePath(agent: AgentState, target: { x: number; y: number }): Waypoint[] {
-    return this.nav.findPath(agent.x, agent.y, target.x, target.y);
+  drawNavDebug(ctx: CanvasRenderingContext2D, s: number): void {
+    this.nav.debugDraw(ctx, s);
   }
 
-  drawNavDebug(ctx: CanvasRenderingContext2D, s: number): void { this.nav.debugDraw(ctx, s); }
-  resetLeadAgent(): void { this.leadAgentId = null; }
+  resetLeadAgent(): void {
+    this.leadAgentId = null;
+  }
 }
