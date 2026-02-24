@@ -86,17 +86,17 @@ export const OFFICE_SEAT_MAP: Record<ZoneType, Seat[]> = {
       zone: 'lead-office',
       role: 'manager',
       desk: { x: 111, y: 214 },
-      seat: { x: 111, y: 205, facing: 'left' },
+      seat: { x: 99, y: 214, facing: 'right' },
     },
   ],
 
   'main-floor': [
-    { id: 'main-0', zone: 'main-floor', role: 'main', desk: { x: 39, y: 76 }, seat: { x: 39, y: 85, facing: 'down' } },
-    { id: 'main-1', zone: 'main-floor', role: 'main', desk: { x: 90, y: 76 }, seat: { x: 90, y: 85, facing: 'down' } },
-    { id: 'main-2', zone: 'main-floor', role: 'main', desk: { x: 141, y: 76 }, seat: { x: 141, y: 85, facing: 'down' } },
-    { id: 'main-3', zone: 'main-floor', role: 'main', desk: { x: 39, y: 122 }, seat: { x: 39, y: 131, facing: 'down' } },
-    { id: 'main-4', zone: 'main-floor', role: 'main', desk: { x: 90, y: 122 }, seat: { x: 90, y: 131, facing: 'down' } },
-    { id: 'main-5', zone: 'main-floor', role: 'main', desk: { x: 141, y: 122 }, seat: { x: 141, y: 131, facing: 'down' } },
+    { id: 'main-0', zone: 'main-floor', role: 'main', desk: { x: 39, y: 76 }, seat: { x: 27, y: 76, facing: 'right' } },
+    { id: 'main-1', zone: 'main-floor', role: 'main', desk: { x: 90, y: 76 }, seat: { x: 78, y: 76, facing: 'right' } },
+    { id: 'main-2', zone: 'main-floor', role: 'main', desk: { x: 141, y: 76 }, seat: { x: 129, y: 76, facing: 'right' } },
+    { id: 'main-3', zone: 'main-floor', role: 'main', desk: { x: 39, y: 122 }, seat: { x: 27, y: 122, facing: 'right' } },
+    { id: 'main-4', zone: 'main-floor', role: 'main', desk: { x: 90, y: 122 }, seat: { x: 78, y: 122, facing: 'right' } },
+    { id: 'main-5', zone: 'main-floor', role: 'main', desk: { x: 141, y: 122 }, seat: { x: 129, y: 122, facing: 'right' } },
   ],
 
   // Sub-agent work area has one dedicated desk/chair pair on this board.
@@ -106,7 +106,7 @@ export const OFFICE_SEAT_MAP: Record<ZoneType, Seat[]> = {
       zone: 'sub-agent-zone',
       role: 'sub',
       desk: { x: 244, y: 223 },
-      seat: { x: 244, y: 232, facing: 'down' },
+      seat: { x: 232, y: 223, facing: 'right' },
     },
   ],
 
