@@ -65,9 +65,208 @@ export const LAYOUT = {
 
 const IDLE_BREAK_THRESHOLD = 30_000; // 30 seconds (for testing, bump to 5*60_000 for prod)
 const WALK_SPEED = 20; // virtual pixels per second (slower for smoother retro movement)
+const NAV_CELL = 4;
+const NAV_DEBUG = new URLSearchParams(window.location.search).has('navDebug') || localStorage.getItem('pixelclaw.navDebug') === '1';
+
+type Cell = { cx: number; cy: number };
+type Rect = { x: number; y: number; w: number; h: number };
+
+class NavigationGrid {
+  readonly cellSize = NAV_CELL;
+  readonly width = Math.ceil(VW / NAV_CELL);
+  readonly height = Math.ceil(VH / NAV_CELL);
+  private walkable: boolean[] = new Array(this.width * this.height).fill(false);
+
+  constructor() {
+    this.rebuild();
+  }
+
+  rebuild(): void {
+    this.walkable.fill(false);
+
+    // 1) Only zone floor space is initially walkable (outside-office void remains blocked).
+    for (const zone of Object.values(ZONES)) {
+      this.fillRect(zone.x, zone.y, zone.w, zone.h, true);
+    }
+
+    // 2) Explicit structural walls and non-walkable features.
+    this.blockRect(0, 0, VW, WALL_H); // top wall band
+    this.blockRect(DIVIDER_X, WALL_H, 2, LAYOUT.DOORWAY_Y - WALL_H); // divider upper segment
+    this.blockRect(DIVIDER_X, LAYOUT.DOORWAY_Y + LAYOUT.DOORWAY_H, 2, DIVIDER_Y - (LAYOUT.DOORWAY_Y + LAYOUT.DOORWAY_H)); // divider lower segment
+    this.blockRect(0, DIVIDER_Y, VW, 2); // horizontal interior wall line
+
+    // Furniture blockers (tunable rectangles in virtual board coordinates).
+    const blockers: Rect[] = [];
+
+    // Main desks (leave front edge open so agents can stand near desks).
+    for (let i = 0; i < 12; i++) {
+      const col = i % LAYOUT.MAIN_DESKS_PER_ROW;
+      const row = Math.floor(i / LAYOUT.MAIN_DESKS_PER_ROW);
+      const x = LAYOUT.MAIN_DESK_START_X + col * LAYOUT.MAIN_DESK_SPACING_X;
+      const y = LAYOUT.MAIN_DESK_START_Y + row * LAYOUT.MAIN_DESK_SPACING_Y;
+      blockers.push({ x: x + 2, y: y + 6, w: 28, h: 14 });
+    }
+
+    // Lead desk
+    blockers.push({ x: LAYOUT.LEAD_DESK_X + 2, y: LAYOUT.LEAD_DESK_Y + 6, w: 28, h: 14 });
+
+    // Break-room props
+    const breakY = LAYOUT.DIVIDER_Y + 8;
+    blockers.push({ x: LAYOUT.BREAK_START_X + 8, y: breakY + 2, w: 16, h: 30 }); // water cooler
+    blockers.push({ x: LAYOUT.BREAK_START_X + 28, y: breakY + 2, w: 20, h: 34 }); // vending
+    blockers.push({ x: LAYOUT.BREAK_START_X + 58, y: breakY + 10, w: 20, h: 24 }); // coffee
+    blockers.push({ x: LAYOUT.BREAK_START_X + 92, y: breakY + 26, w: 30, h: 14 }); // couch footprint
+
+    for (const b of blockers) this.blockRect(b.x, b.y, b.w, b.h);
+  }
+
+  isWalkableCell(cx: number, cy: number): boolean {
+    return cx >= 0 && cx < this.width && cy >= 0 && cy < this.height && this.walkable[cy * this.width + cx];
+  }
+
+  toCell(x: number, y: number): Cell {
+    return {
+      cx: Math.max(0, Math.min(this.width - 1, Math.floor(x / this.cellSize))),
+      cy: Math.max(0, Math.min(this.height - 1, Math.floor(y / this.cellSize))),
+    };
+  }
+
+  toPoint(cell: Cell): Waypoint {
+    return {
+      x: Math.round(cell.cx * this.cellSize + this.cellSize / 2),
+      y: Math.round(cell.cy * this.cellSize + this.cellSize / 2),
+    };
+  }
+
+  clampToNearestWalkable(x: number, y: number): Waypoint {
+    const start = this.toCell(x, y);
+    if (this.isWalkableCell(start.cx, start.cy)) return this.toPoint(start);
+
+    const q: Cell[] = [start];
+    const seen = new Set([`${start.cx},${start.cy}`]);
+
+    while (q.length) {
+      const cur = q.shift()!;
+      const dirs: Cell[] = [
+        { cx: cur.cx + 1, cy: cur.cy },
+        { cx: cur.cx - 1, cy: cur.cy },
+        { cx: cur.cx, cy: cur.cy + 1 },
+        { cx: cur.cx, cy: cur.cy - 1 },
+      ];
+      for (const n of dirs) {
+        if (n.cx < 0 || n.cx >= this.width || n.cy < 0 || n.cy >= this.height) continue;
+        const key = `${n.cx},${n.cy}`;
+        if (seen.has(key)) continue;
+        if (this.isWalkableCell(n.cx, n.cy)) return this.toPoint(n);
+        seen.add(key);
+        q.push(n);
+      }
+    }
+
+    return { x: Math.round(x), y: Math.round(y) };
+  }
+
+  findPath(startX: number, startY: number, endX: number, endY: number): Waypoint[] {
+    const startPt = this.clampToNearestWalkable(startX, startY);
+    const endPt = this.clampToNearestWalkable(endX, endY);
+    const start = this.toCell(startPt.x, startPt.y);
+    const goal = this.toCell(endPt.x, endPt.y);
+
+    if (start.cx === goal.cx && start.cy === goal.cy) return [endPt];
+
+    const q: Cell[] = [start];
+    const parent = new Map<string, string>();
+    const seen = new Set([`${start.cx},${start.cy}`]);
+
+    while (q.length) {
+      const cur = q.shift()!;
+      if (cur.cx === goal.cx && cur.cy === goal.cy) break;
+
+      const dirs: Cell[] = [
+        { cx: cur.cx + 1, cy: cur.cy },
+        { cx: cur.cx - 1, cy: cur.cy },
+        { cx: cur.cx, cy: cur.cy + 1 },
+        { cx: cur.cx, cy: cur.cy - 1 },
+      ];
+
+      for (const n of dirs) {
+        if (!this.isWalkableCell(n.cx, n.cy)) continue;
+        const nKey = `${n.cx},${n.cy}`;
+        if (seen.has(nKey)) continue;
+        seen.add(nKey);
+        parent.set(nKey, `${cur.cx},${cur.cy}`);
+        q.push(n);
+      }
+    }
+
+    const goalKey = `${goal.cx},${goal.cy}`;
+    if (!seen.has(goalKey)) return [endPt];
+
+    const pathCells: Cell[] = [];
+    let curKey: string | undefined = goalKey;
+    while (curKey) {
+      const [cx, cy] = curKey.split(',').map(Number);
+      pathCells.push({ cx, cy });
+      if (curKey === `${start.cx},${start.cy}`) break;
+      curKey = parent.get(curKey);
+    }
+    pathCells.reverse();
+
+    const points = pathCells.map(c => this.toPoint(c));
+    points[points.length - 1] = endPt;
+
+    // Path compression: keep corners and destination only.
+    const simplified: Waypoint[] = [];
+    for (let i = 0; i < points.length; i++) {
+      if (i === 0 || i === points.length - 1) {
+        simplified.push(points[i]);
+        continue;
+      }
+      const a = points[i - 1];
+      const b = points[i];
+      const c = points[i + 1];
+      const dx1 = Math.sign(b.x - a.x);
+      const dy1 = Math.sign(b.y - a.y);
+      const dx2 = Math.sign(c.x - b.x);
+      const dy2 = Math.sign(c.y - b.y);
+      if (dx1 !== dx2 || dy1 !== dy2) simplified.push(b);
+    }
+    return simplified;
+  }
+
+  debugDraw(ctx: CanvasRenderingContext2D, s: number): void {
+    if (!NAV_DEBUG) return;
+    ctx.save();
+    for (let cy = 0; cy < this.height; cy++) {
+      for (let cx = 0; cx < this.width; cx++) {
+        const x = cx * this.cellSize;
+        const y = cy * this.cellSize;
+        const ok = this.isWalkableCell(cx, cy);
+        ctx.fillStyle = ok ? 'rgba(80,220,120,0.18)' : 'rgba(220,70,70,0.10)';
+        ctx.fillRect(Math.round(x * s), Math.round(y * s), Math.ceil(this.cellSize * s), Math.ceil(this.cellSize * s));
+      }
+    }
+    ctx.restore();
+  }
+
+  private fillRect(x: number, y: number, w: number, h: number, value: boolean): void {
+    const c0 = this.toCell(x, y);
+    const c1 = this.toCell(x + Math.max(0, w - 1), y + Math.max(0, h - 1));
+    for (let cy = c0.cy; cy <= c1.cy; cy++) {
+      for (let cx = c0.cx; cx <= c1.cx; cx++) {
+        this.walkable[cy * this.width + cx] = value;
+      }
+    }
+  }
+
+  private blockRect(x: number, y: number, w: number, h: number): void {
+    this.fillRect(x, y, w, h, false);
+  }
+}
 
 export class ZoneManager {
   private leadAgentId: string | null = null;
+  private nav = new NavigationGrid();
 
   /** Determine which zone an agent belongs to */
   assignZone(agent: AgentState, allAgents: AgentState[]): ZoneType {
@@ -147,8 +346,8 @@ export class ZoneManager {
 
     for (const agent of allAgents) {
       const newZone = this.assignZone(agent, mainAgents);
-      const zoneIdx = zoneCounters[newZone]++;
-      const target = this.getTargetPosition(agent, newZone, zoneIdx);
+      const rawTarget = this.getTargetPosition(agent, newZone, zoneCounters[newZone]++);
+      const target = this.nav.clampToNearestWalkable(rawTarget.x, rawTarget.y);
 
       // If zone changed, start walking
       if (agent.zone && agent.zone !== newZone && agent.activity !== 'walking') {
@@ -164,18 +363,20 @@ export class ZoneManager {
         agent.zone = newZone;
         agent.targetX = target.x;
         agent.targetY = target.y;
+
         // Initial placement
         if (agent.x === 0 && agent.y === 0) {
           if (agent.isSubAgent) {
-            // Sub-agents spawn at right edge and walk in
-            agent.x = VW + 10;
-            agent.y = target.y;
+            // Spawn near right edge but still on walkable tile.
+            const spawn = this.nav.clampToNearestWalkable(VW - 8, target.y);
+            agent.x = spawn.x;
+            agent.y = spawn.y;
             agent.targetZone = newZone;
             agent.targetX = target.x;
             agent.targetY = target.y;
             agent.previousActivity = agent.activity;
             agent.activity = 'walking';
-            agent.walkPath = [{ x: target.x, y: target.y }];
+            agent.walkPath = this.calculatePath(agent, target);
             agent.walkIndex = 0;
           } else {
             agent.x = target.x;
@@ -183,6 +384,11 @@ export class ZoneManager {
           }
         }
       }
+
+      // Keep active coordinates valid and in bounds.
+      const corrected = this.nav.clampToNearestWalkable(agent.x, agent.y);
+      agent.x = corrected.x;
+      agent.y = corrected.y;
 
       // Process walking
       if (agent.activity === 'walking' && agent.walkPath && agent.walkIndex !== undefined) {
@@ -223,23 +429,13 @@ export class ZoneManager {
     }
   }
 
-  /** Simple waypoint path calculation */
+  /** Grid-constrained path calculation */
   private calculatePath(agent: AgentState, target: { x: number; y: number }): Waypoint[] {
-    const L = LAYOUT;
-    const waypoints: Waypoint[] = [];
+    return this.nav.findPath(agent.x, agent.y, target.x, target.y);
+  }
 
-    // Simple corridor-based pathfinding
-    const corridorY = L.DIVIDER_Y - 10;
-    const corridorX = L.DIVIDER_X - 5;
-
-    // Move to corridor first if crossing zones
-    if (Math.abs(agent.y - target.y) > 20 || Math.abs(agent.x - target.x) > 40) {
-      waypoints.push({ x: agent.x, y: corridorY });
-      waypoints.push({ x: target.x, y: corridorY });
-    }
-
-    waypoints.push({ x: target.x, y: target.y });
-    return waypoints;
+  drawNavDebug(ctx: CanvasRenderingContext2D, s: number): void {
+    this.nav.debugDraw(ctx, s);
   }
 
   resetLeadAgent(): void {

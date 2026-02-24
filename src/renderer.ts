@@ -278,6 +278,9 @@ export class Renderer {
     }
     ctx.setLineDash([]);
 
+    // ── Nav debug overlay (toggle with ?navDebug=1 or localStorage pixelclaw.navDebug=1) ──
+    this.zones.drawNavDebug(ctx, s);
+
     // ── Layer 6: UI overlays (optional) ──
     if (SHOW_AGENT_LABELS) {
       for (const agent of allAgents) {
