@@ -12,6 +12,7 @@ import {
 import { VS, pixelFont } from './visual-system';
 
 const SUB_SCALE_FACTOR = 2 / 3;
+const SHOW_AGENT_LABELS = false;
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
@@ -261,17 +262,19 @@ export class Renderer {
     }
     ctx.setLineDash([]);
 
-    // ── Layer 6: UI overlays (name tags, bubbles) ──
-    for (const agent of allAgents) {
-      const agentScale = agent.isSubAgent ? s * SUB_SCALE_FACTOR : s;
-      this.drawNameTag(agent, agentScale);
+    // ── Layer 6: UI overlays (optional) ──
+    if (SHOW_AGENT_LABELS) {
+      for (const agent of allAgents) {
+        const agentScale = agent.isSubAgent ? s * SUB_SCALE_FACTOR : s;
+        this.drawNameTag(agent, agentScale);
 
-      // Status bubble
-      const isActive = agent.activity !== 'idle' && agent.activity !== 'sleeping' && agent.activity !== 'walking';
-      if (agent.lastMessage && isActive && agent.activity !== 'thinking') {
-        const toolMatch = agent.lastMessage.match(/^Using (.+)$/);
-        const bubbleText = toolMatch ? toolMatch[1] : agent.activity;
-        drawStatusBubble(ctx, (agent.x + 8) * agentScale, (agent.y - 10) * agentScale, bubbleText, agentScale);
+        // Status bubble
+        const isActive = agent.activity !== 'idle' && agent.activity !== 'sleeping' && agent.activity !== 'walking';
+        if (agent.lastMessage && isActive && agent.activity !== 'thinking') {
+          const toolMatch = agent.lastMessage.match(/^Using (.+)$/);
+          const bubbleText = toolMatch ? toolMatch[1] : agent.activity;
+          drawStatusBubble(ctx, (agent.x + 8) * agentScale, (agent.y - 10) * agentScale, bubbleText, agentScale);
+        }
       }
     }
 
