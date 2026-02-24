@@ -104,33 +104,41 @@ def character(cell, char, state):
         return
 
     if char == 'max':
+        # Max v2: cleaner hero sprite, less blocky face, stronger hoodie silhouette
         draw_head(d, cx, top)
         face(d, cx, top, 'typing' if state=='typing' else ('think' if state=='thinking' else 'idle'))
-        # Protagonist hoodie (clean NES silhouette)
-        draw_body(d, cx, torso_y, 13, 16, '#2f74d0', '#1f4e92')
-        # Hoodie hood and drawstrings
-        R(d, cx-7, torso_y-1, 14, 3, '#1f4e92')
-        R(d, cx-2, torso_y+2, 1, 4, COL['white'])
-        R(d, cx+1, torso_y+2, 1, 4, COL['white'])
-        # Hair + small headset mic (less bulky than old headphones)
+        # Hairline + brows for expression
         R(d, cx-5, top-1, 10, 2, '#6f3f20')
-        R(d, cx+6, top+5, 2, 1, COL['outline'])
-        R(d, cx+8, top+5, 1, 1, COL['glow'])
+        R(d, cx-4, top+2, 2, 1, '#4a2d16')
+        R(d, cx+2, top+2, 2, 1, '#4a2d16')
+        # Hoodie body with zipper + pocket
+        draw_body(d, cx, torso_y, 14, 17, '#2e6fc8', '#1d4b8f')
+        R(d, cx-7, torso_y-1, 14, 3, '#1d4b8f')
+        R(d, cx, torso_y+1, 1, 12, '#9ac7ff')
+        R(d, cx-4, torso_y+10, 8, 3, '#255aa8')
+        # Headset/mic accent
+        R(d, cx+6, top+4, 2, 1, COL['outline'])
+        R(d, cx+8, top+4, 1, 1, COL['glow'])
     elif char == 'chief':
-        draw_head(d, cx, top)
-        # Halo-style helmet with cleaner visor read
-        R(d, cx-7, top-3, 14, 5, '#365f2a')
-        R(d, cx-7, top-3, 14, 2, COL['outline'])
-        R(d, cx-6, top+2, 12, 1, '#4f8a39')
-        R(d, cx-4, top+4, 8, 3, COL['visor'])
-        R(d, cx-2, top+5, 4, 1, '#fff2b5')
-        # Armor torso + chest plate
-        draw_body(d, cx, torso_y, 15, 18, '#5a9342', '#355426')
-        R(d, cx-4, torso_y+3, 8, 3, '#6aa34b')
-        R(d, cx-6, torso_y+7, 12, 2, '#2b4a20')
-        # Shoulder pads
-        R(d, cx-10, torso_y+1, 3, 4, '#355426')
-        R(d, cx+7, torso_y+1, 3, 4, '#355426')
+        # Chief v2: stronger helmet silhouette and armored chest read
+        draw_head(d, cx, top+1)
+        # Full helmet shell
+        R(d, cx-8, top-3, 16, 6, '#345b28')
+        R(d, cx-8, top-3, 16, 2, COL['outline'])
+        R(d, cx-7, top-1, 14, 1, '#4f8a39')
+        # Gold visor strip
+        R(d, cx-5, top+4, 10, 3, COL['visor'])
+        R(d, cx-3, top+5, 6, 1, '#fff2b5')
+        # Neck guard
+        R(d, cx-4, top+8, 8, 2, '#243f1b')
+        # Armor torso + chest plate + belt
+        draw_body(d, cx, torso_y, 16, 19, '#5a9342', '#355426')
+        R(d, cx-5, torso_y+3, 10, 4, '#6ca84d')
+        R(d, cx-6, torso_y+8, 12, 2, '#2b4a20')
+        R(d, cx-6, torso_y+13, 12, 2, '#253d1d')
+        # Shoulder plates
+        R(d, cx-11, torso_y+1, 4, 5, '#355426')
+        R(d, cx+7, torso_y+1, 4, 5, '#355426')
     elif char == 'cortana':
         draw_head(d, cx, top)
         face(d, cx, top, 'typing' if state=='typing' else ('think' if state=='thinking' else 'idle'))
