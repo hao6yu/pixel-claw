@@ -15,7 +15,7 @@ const SUB_SCALE_FACTOR = 0.8;
 const SHOW_AGENT_LABELS = false;
 const USE_DONARG_BACKGROUND = true;
 const DONARG_BG_SRC = '/assets/donarg/office-level-4.png';
-const DONARG_CROP = { x: 0, y: 180, w: 640, h: 512 };
+const DONARG_CROP = { x: 0, y: 288, w: 640, h: 512 };
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
