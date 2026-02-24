@@ -29,6 +29,15 @@ function ensureSheet(index: number): HTMLImageElement | null {
 }
 
 function getPaletteIndex(agentId: string): number {
+  const id = agentId.toLowerCase();
+
+  // Name-locked cast mapping (3 male + 1 female)
+  if (id.includes('cortana') || id.includes('02-threat-hunter') || id.includes('threat-hunter')) return 4; // female
+  if (id.includes('chief') || id.includes('01-tech-lead') || id.includes('tech-lead')) return 1; // male
+  if (id.includes('ghost') || id.includes('03-lore-keeper') || id.includes('lore-keeper')) return 2; // male
+  if (id.includes('max') || id.includes('main') || id === 'default') return 0; // male
+
+  // Fallback for unknown agents
   return Math.abs(hashNum(agentId)) % PALETTE_COUNT;
 }
 
