@@ -2,7 +2,7 @@ import { StateManager } from './state';
 import { Gateway } from './gateway';
 import { Renderer } from './renderer';
 import { initUI } from './ui';
-// Atlas sprite sheets intentionally unused; fully procedural pixel rendering.
+import { loadSpriteSheets } from './sprite-loader';
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const state = new StateManager();
@@ -12,4 +12,7 @@ const renderer = new Renderer(canvas, state);
 initUI(state, gateway, renderer);
 renderer.start();
 
-// Procedural visuals only: no runtime atlas loading.
+// Load sprite sheets in background — characters will upgrade to designed art once ready.
+loadSpriteSheets().catch(() => {
+  // keep procedural fallback silently
+});

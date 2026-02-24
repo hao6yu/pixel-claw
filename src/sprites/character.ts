@@ -1,5 +1,7 @@
 import type { AgentActivity } from '../types';
 import { pxAt, darken, lighten, hashNum } from '../utils';
+import { getSheets } from '../sprite-loader';
+import { CHAR_IDLE_ATLAS, CHAR_ACTION_ATLAS, getCharName } from '../atlas';
 
 const SKIN_TONES = ['#f5d0a9', '#e8b88a', '#d4a574', '#c68c5b', '#a0704a', '#7a5435'];
 const HAIR_COLORS = ['#2a1a0a', '#4a2a10', '#8b6040', '#c0a060', '#e0c080', '#d04030', '#303030', '#f0e0c0'];
@@ -41,16 +43,58 @@ function getAppearance(agentId: string, shirtColor: string): AgentAppearance {
   };
 }
 
-/** Atlas characters disabled to avoid style and crop mismatches. */
+/** Draw character from designed sprite sheets when available. */
 function drawCharacterSprite(
-  _ctx: CanvasRenderingContext2D,
-  _baseX: number, _baseY: number,
-  _activity: AgentActivity,
-  _scale: number,
-  _agentId: string,
-  _globalTime: number,
+  ctx: CanvasRenderingContext2D,
+  baseX: number, baseY: number,
+  activity: AgentActivity,
+  scale: number,
+  agentId: string,
+  globalTime: number,
 ): boolean {
-  return false;
+  const sheets = getSheets();
+  if (!sheets) return false;
+
+  const char = getCharName(agentId);
+
+  const walkFrame = Math.floor(globalTime * 8) % 2;
+  const actionKey = activity === 'walking'
+    ? `${char}-${walkFrame === 0 ? 'walk1' : 'walk2'}`
+    : activity === 'sleeping'
+      ? `${char}-sleeping`
+      : null;
+
+  const idleMap: Record<string, string> = {
+    thinking: `${char}-thinking`,
+    coding: `${char}-typing`,
+    browsing: `${char}-typing`,
+    'running-cmd': `${char}-typing`,
+  };
+  const idleKey = idleMap[activity] || `${char}-idle`;
+
+  const useAction = !!actionKey && !!CHAR_ACTION_ATLAS[actionKey];
+  const rect = useAction ? CHAR_ACTION_ATLAS[actionKey!] : CHAR_IDLE_ATLAS[idleKey];
+  if (!rect) return false;
+
+  const source = useAction ? sheets.charsAction : sheets.charsIdle;
+
+  // 256x512 source cells rendered as ~16x24 virtual px for in-game scale consistency.
+  const destW = 16 * scale;
+  const destH = 24 * scale;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(
+    source,
+    rect.x,
+    rect.y,
+    rect.w,
+    rect.h,
+    Math.round(baseX),
+    Math.round(baseY),
+    Math.round(destW),
+    Math.round(destH),
+  );
+
+  return true;
 }
 
 export function drawCharacter(
