@@ -249,64 +249,40 @@ export function drawStandingDesk(ctx: CanvasRenderingContext2D, x: number, y: nu
 }
 
 export function drawBookshelf(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
-  // Medium shelf asset has better content fill (less dead padding) for wall decor
-  if (drawFurnitureSprite(ctx, 'bookshelf-medium', x, y, 24 * s, 24 * s)) return;
+  // Deterministic 24x24 wall bookshelf (NES-style chunky silhouette)
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
   const by = y / s;
-  const w = 20;
-  const h = 18;
+  const w = 24;
+  const h = 24;
 
-  // Main body
-  pxAt(ctx, bx, by, 0, 0, w, h, '#5a4030', s);
-  // Top highlight
-  pxAt(ctx, bx, by, 0, 0, w, 1, '#6b4a35', s);
-  // Left side highlight
-  pxAt(ctx, bx, by, 0, 0, 1, h, '#6b4a35', s);
-  // Right side shadow
-  pxAt(ctx, bx, by, w - 1, 0, 1, h, '#4a3525', s);
-  // Bottom shadow
-  pxAt(ctx, bx, by, 0, h - 1, w, 1, darken('#5a4030', 0.15), s);
+  pxAt(ctx, bx, by, 0, 0, w, h, '#5b4230', s);
+  pxAt(ctx, bx, by, 0, 0, w, 1, '#73563f', s);
+  pxAt(ctx, bx, by, 0, 0, 1, h, '#7d5f46', s);
+  pxAt(ctx, bx, by, w - 1, 0, 1, h, '#463323', s);
 
-  const bookColors = ['#c04040', '#4060c0', '#40a060', '#c0a040', '#8040a0', '#c06030', '#3080a0', '#a04070', '#5080c0', '#c07050'];
+  for (const yShelf of [6, 12, 18]) {
+    pxAt(ctx, bx, by, 1, yShelf, w - 2, 1, '#7a5a41', s);
+    pxAt(ctx, bx, by, 1, yShelf + 1, w - 2, 1, '#493626', s);
+  }
 
-  for (let sy = 0; sy < 3; sy++) {
-    const shelfY = 1 + sy * 6;
-    // Shelf board
-    pxAt(ctx, bx, by, 1, shelfY + 5, w - 2, 1, '#7a5a40', s);
-    // Shadow under shelf
-    pxAt(ctx, bx, by, 1, shelfY, w - 2, 1, 'rgba(0,0,0,0.12)', s);
-
-    // Books with varied widths and highlights
-    let bkx = 2;
-    const numBooks = 5 + ((sy * 3 + Math.floor(bx * 7)) % 3);
-    for (let b = 0; b < numBooks; b++) {
-      const bw = 1 + ((b + sy * 3 + Math.floor(bx)) % 2);
-      const bh = 3 + ((b + sy) % 2);
-      const bc = bookColors[(b + sy * 3 + Math.floor(bx * 7)) % bookColors.length];
-      if (bkx + bw >= w - 2) break;
-
-      // Book body
-      pxAt(ctx, bx, by, bkx, shelfY + 5 - bh, bw, bh, bc, s);
-      // Spine highlight (left edge)
-      pxAt(ctx, bx, by, bkx, shelfY + 5 - bh, 1, bh, lighten(bc, 0.2), s);
-      // Top edge highlight
-      pxAt(ctx, bx, by, bkx, shelfY + 5 - bh, bw, 1, lighten(bc, 0.1), s);
-      // Right edge shadow
-      if (bw > 1) {
-        pxAt(ctx, bx, by, bkx + bw - 1, shelfY + 5 - bh, 1, bh, darken(bc, 0.15), s);
-      }
-      // Title line detail
-      if (bh >= 4) {
-        pxAt(ctx, bx, by, bkx, shelfY + 5 - bh + 2, bw, 1, darken(bc, 0.1), s);
-      }
-      bkx += bw + 1;
+  const bookCols = ['#b13f3d', '#3d66b1', '#3f8d52', '#bf9343', '#7b4bb5', '#2f8d95'];
+  for (let row = 0; row < 4; row++) {
+    const rowTop = 1 + row * 6;
+    let cx = 2;
+    for (let i = 0; i < 7; i++) {
+      const bw = (i + row) % 3 === 0 ? 2 : 1;
+      const bh = 4 + ((i + row) % 2);
+      if (cx + bw > w - 2) break;
+      const c = bookCols[(i + row * 2) % bookCols.length];
+      pxAt(ctx, bx, by, cx, rowTop + (5 - bh), bw, bh, c, s);
+      pxAt(ctx, bx, by, cx, rowTop + (5 - bh), 1, bh, lighten(c, 0.12), s);
+      if (bw > 1) pxAt(ctx, bx, by, cx + bw - 1, rowTop + (5 - bh), 1, bh, darken(c, 0.12), s);
+      cx += bw + 1;
     }
   }
 
-  // Shadow below shelf
-  pxAt(ctx, bx, by, 1, h, w - 2, 1, 'rgba(0,0,0,0.1)', s);
-  pxAt(ctx, bx, by, 2, h + 1, w - 4, 1, 'rgba(0,0,0,0.05)', s);
+  pxAt(ctx, bx, by, 1, h, w - 2, 1, 'rgba(0,0,0,0.12)', s);
 }
 
 export function drawPottedPlant(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
@@ -356,282 +332,172 @@ export function drawPottedPlant(ctx: CanvasRenderingContext2D, x: number, y: num
 }
 
 export function drawClock(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, time: number) {
-  if (drawFurnitureSprite(ctx, 'clock', x, y, 10 * s, 10 * s)) return;
+  // Deterministic 12x12 clock to avoid atlas crop variance
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
   const by = y / s;
 
-  // Frame with highlight/shadow
-  pxAt(ctx, bx, by, 1, 0, 6, 1, '#5a5050', s);
-  pxAt(ctx, bx, by, 0, 1, 8, 6, '#e8e0d0', s);
-  pxAt(ctx, bx, by, 1, 7, 6, 1, '#4a4040', s);
-  pxAt(ctx, bx, by, 0, 1, 1, 6, '#5a5050', s); // left highlight
-  pxAt(ctx, bx, by, 7, 1, 1, 6, '#4a4040', s); // right shadow
-  // Inner face highlight
-  pxAt(ctx, bx, by, 2, 2, 4, 4, '#f0e8d8', s);
+  pxAt(ctx, bx, by, 1, 0, 10, 1, '#6f5b4c', s);
+  pxAt(ctx, bx, by, 0, 1, 12, 10, '#5a4a3d', s);
+  pxAt(ctx, bx, by, 1, 1, 10, 10, '#ece5d4', s);
+  pxAt(ctx, bx, by, 2, 2, 8, 8, '#f5eedf', s);
+  pxAt(ctx, bx, by, 10, 1, 1, 10, '#4a3c30', s);
+  pxAt(ctx, bx, by, 1, 10, 10, 1, '#4a3c30', s);
 
-  // Hour markers
-  pxAt(ctx, bx, by, 4, 1, 1, 1, '#3a3030', s);
-  pxAt(ctx, bx, by, 6, 4, 1, 1, '#3a3030', s);
-  pxAt(ctx, bx, by, 4, 6, 1, 1, '#3a3030', s);
-  pxAt(ctx, bx, by, 1, 4, 1, 1, '#3a3030', s);
+  pxAt(ctx, bx, by, 5, 2, 2, 1, '#3a2e2a', s);
+  pxAt(ctx, bx, by, 9, 5, 1, 2, '#3a2e2a', s);
+  pxAt(ctx, bx, by, 5, 9, 2, 1, '#3a2e2a', s);
+  pxAt(ctx, bx, by, 2, 5, 1, 2, '#3a2e2a', s);
 
   const t = time || 0;
-  const h = (t * 0.05) % 12;
-  const m = (t * 0.8) % 60;
-  const handPositions = [[4, 2], [5, 4], [4, 5], [2, 4]];
-  const mPositions = [[4, 1], [6, 4], [4, 6], [1, 4]];
-  const hDir = Math.abs(Math.floor(h / 3)) % 4;
-  const mDir = Math.abs(Math.floor(m / 15)) % 4;
-  pxAt(ctx, bx, by, 4, 4, 1, 1, '#2a2020', s);
-  pxAt(ctx, bx, by, handPositions[hDir][0], handPositions[hDir][1], 1, 1, '#2a2020', s);
-  pxAt(ctx, bx, by, mPositions[mDir][0], mPositions[mDir][1], 1, 1, '#c04040', s);
+  const hDir = Math.abs(Math.floor(((t * 0.05) % 12) / 3)) % 4;
+  const mDir = Math.abs(Math.floor(((t * 0.8) % 60) / 15)) % 4;
+  const hPos = [[6, 4], [7, 6], [6, 7], [4, 6]][hDir];
+  const mPos = [[6, 3], [8, 6], [6, 8], [3, 6]][mDir];
+  pxAt(ctx, bx, by, 6, 6, 1, 1, '#2a2020', s);
+  pxAt(ctx, bx, by, hPos[0], hPos[1], 1, 1, '#2a2020', s);
+  pxAt(ctx, bx, by, mPos[0], mPos[1], 1, 1, '#b74141', s);
 
-  // Shadow below clock
-  pxAt(ctx, bx, by, 1, 8, 6, 1, 'rgba(0,0,0,0.1)', s);
+  pxAt(ctx, bx, by, 1, 11, 10, 1, 'rgba(0,0,0,0.1)', s);
 }
 
 export function drawWaterCooler(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
-  if (drawFurnitureSprite(ctx, 'water-cooler-large', x, y, 13 * s, 22 * s)) return;
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
   const by = y / s;
 
-  // Body
-  pxAt(ctx, bx, by, 2, 10, 6, 6, '#8a8a90', s);
-  pxAt(ctx, bx, by, 2, 10, 6, 1, '#9a9aa0', s); // top highlight
-  pxAt(ctx, bx, by, 2, 10, 1, 6, '#9a9aa0', s); // left highlight
-  pxAt(ctx, bx, by, 7, 10, 1, 6, darken('#8a8a90', 0.12), s); // right shadow
-  // Legs
-  pxAt(ctx, bx, by, 2, 16, 2, 2, '#7a7a80', s);
-  pxAt(ctx, bx, by, 6, 16, 2, 2, '#7a7a80', s);
-  // Water bottle with highlight
-  pxAt(ctx, bx, by, 3, 1, 4, 9, '#a0d0e8', s);
-  pxAt(ctx, bx, by, 3, 1, 1, 9, '#b8e4f8', s); // left highlight (light refraction)
-  pxAt(ctx, bx, by, 6, 1, 1, 9, darken('#a0d0e8', 0.1), s); // right shadow
-  pxAt(ctx, bx, by, 4, 0, 2, 1, '#90c0d8', s); // bottle top
-  // Spigot
-  pxAt(ctx, bx, by, 7, 12, 2, 1, '#7a7a80', s);
-  pxAt(ctx, bx, by, 8, 12, 1, 2, '#5a5a60', s);
-  // Shadow
-  pxAt(ctx, bx, by, 2, 18, 6, 1, 'rgba(0,0,0,0.08)', s);
+  pxAt(ctx, bx, by, 3, 0, 8, 10, '#86b9d3', s);
+  pxAt(ctx, bx, by, 3, 0, 2, 10, '#a5d5ea', s);
+  pxAt(ctx, bx, by, 10, 0, 1, 10, '#699ab3', s);
+
+  pxAt(ctx, bx, by, 2, 10, 10, 13, '#7f8795', s);
+  pxAt(ctx, bx, by, 2, 10, 10, 1, '#9ca6b5', s);
+  pxAt(ctx, bx, by, 2, 10, 1, 13, '#a5aebb', s);
+  pxAt(ctx, bx, by, 11, 10, 1, 13, '#626a77', s);
+  pxAt(ctx, bx, by, 3, 14, 8, 3, '#697180', s);
+  pxAt(ctx, bx, by, 11, 14, 2, 1, '#5b626e', s);
+  pxAt(ctx, bx, by, 12, 14, 1, 2, '#464d57', s);
+  pxAt(ctx, bx, by, 4, 23, 2, 2, '#5f6774', s);
+  pxAt(ctx, bx, by, 8, 23, 2, 2, '#5f6774', s);
 }
 
 export function drawVendingMachine(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
-  if (drawFurnitureSprite(ctx, 'vending-machine', x, y, 10 * s, 18 * s)) return;
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
   const by = y / s;
 
-  // Body with shading
-  pxAt(ctx, bx, by, 0, 0, 10, 18, '#4a4a54', s);
-  pxAt(ctx, bx, by, 0, 0, 10, 1, '#5a5a64', s); // top highlight
-  pxAt(ctx, bx, by, 0, 0, 1, 18, '#5a5a64', s); // left highlight
-  pxAt(ctx, bx, by, 9, 0, 1, 18, '#3a3a44', s); // right shadow
-  // Base
-  pxAt(ctx, bx, by, -1, 16, 12, 2, '#3a3a44', s);
-  pxAt(ctx, bx, by, -1, 16, 12, 1, '#4a4a54', s); // base top highlight
+  pxAt(ctx, bx, by, 0, 0, 16, 26, '#4c4f64', s);
+  pxAt(ctx, bx, by, 0, 0, 16, 1, '#666a83', s);
+  pxAt(ctx, bx, by, 0, 0, 1, 26, '#70758d', s);
+  pxAt(ctx, bx, by, 15, 0, 1, 26, '#36394a', s);
+  pxAt(ctx, bx, by, -1, 24, 18, 3, '#323545', s);
 
-  // Glass front with reflection
-  pxAt(ctx, bx, by, 1, 2, 7, 10, '#2a3a4a', s);
-  // Glass reflection diagonal
-  pxAt(ctx, bx, by, 1, 2, 1, 3, 'rgba(255,255,255,0.08)', s);
-  pxAt(ctx, bx, by, 2, 2, 1, 2, 'rgba(255,255,255,0.06)', s);
-  pxAt(ctx, bx, by, 3, 2, 1, 1, 'rgba(255,255,255,0.04)', s);
-
-  // Product rows
-  const snackColors = ['#e04040', '#40a0e0', '#e0c040', '#40c060', '#e080c0', '#f0a030', '#60c0c0', '#c06040', '#8080e0'];
-  for (let row = 0; row < 3; row++) {
-    // Shelf divider
-    pxAt(ctx, bx, by, 1, 2 + row * 3 + 2, 7, 1, 'rgba(100,100,120,0.4)', s);
-    for (let col = 0; col < 3; col++) {
-      const ci = (row * 3 + col) % snackColors.length;
-      pxAt(ctx, bx, by, 2 + col * 2, 3 + row * 3, 1, 2, snackColors[ci], s);
-      // Tiny highlight on each product
-      pxAt(ctx, bx, by, 2 + col * 2, 3 + row * 3, 1, 1, lighten(snackColors[ci], 0.15), s);
+  pxAt(ctx, bx, by, 2, 2, 10, 15, '#2a3b4b', s);
+  pxAt(ctx, bx, by, 2, 2, 2, 4, 'rgba(255,255,255,0.1)', s);
+  for (let r = 0; r < 4; r++) {
+    pxAt(ctx, bx, by, 2, 5 + r * 3, 10, 1, 'rgba(140,150,170,0.35)', s);
+    for (let c = 0; c < 4; c++) {
+      const cols = ['#cf5550', '#e2b84d', '#5ca1d6', '#63b56d'];
+      const col = cols[(r + c) % cols.length];
+      pxAt(ctx, bx, by, 3 + c * 2, 3 + r * 3, 1, 2, col, s);
     }
   }
 
-  // Coin slot area
-  pxAt(ctx, bx, by, 8, 5, 1, 3, '#2a2a34', s);
-  pxAt(ctx, bx, by, 8, 5, 1, 1, '#6a6a74', s); // slot highlight
-  // Button
-  pxAt(ctx, bx, by, 8, 9, 1, 1, '#40c060', s);
-
-  // Dispensing slot
-  pxAt(ctx, bx, by, 1, 13, 7, 2, '#1a1a24', s);
-  pxAt(ctx, bx, by, 1, 13, 7, 1, '#2a2a34', s); // slot top edge
-
-  // Shadow
-  pxAt(ctx, bx, by, 0, 18, 10, 1, 'rgba(0,0,0,0.1)', s);
-  pxAt(ctx, bx, by, 1, 19, 8, 1, 'rgba(0,0,0,0.05)', s);
+  pxAt(ctx, bx, by, 12, 4, 2, 8, '#2a2d3a', s);
+  pxAt(ctx, bx, by, 12, 4, 2, 1, '#515669', s);
+  pxAt(ctx, bx, by, 12, 13, 2, 1, '#53bf63', s);
+  pxAt(ctx, bx, by, 2, 19, 10, 3, '#191c25', s);
 }
 
 export function drawCoffeeMachine(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
-  if (drawFurnitureSprite(ctx, 'coffee-machine-large', x, y, 10 * s, 12 * s)) return;
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
   const by = y / s;
 
-  // Body with shading
-  pxAt(ctx, bx, by, 0, 0, 8, 10, '#2a2a34', s);
-  pxAt(ctx, bx, by, 0, 0, 8, 1, '#3a3a44', s); // top highlight
-  pxAt(ctx, bx, by, 0, 0, 1, 10, '#3a3a44', s); // left highlight
-  pxAt(ctx, bx, by, 7, 0, 1, 10, '#1a1a24', s); // right shadow
-
-  // Chrome accents with highlight
-  pxAt(ctx, bx, by, 1, 2, 6, 1, '#9a9aa4', s);
-  pxAt(ctx, bx, by, 1, 2, 3, 1, '#aaaab4', s); // chrome highlight left
-  pxAt(ctx, bx, by, 1, 5, 6, 1, '#9a9aa4', s);
-  pxAt(ctx, bx, by, 1, 5, 3, 1, '#aaaab4', s);
-
-  // Nozzle area
-  pxAt(ctx, bx, by, 3, 3, 2, 2, '#5a5a64', s);
-  pxAt(ctx, bx, by, 3, 3, 1, 1, '#6a6a74', s); // nozzle highlight
-
-  // Drip tray
-  pxAt(ctx, bx, by, 1, 7, 6, 2, '#4a3020', s);
-  pxAt(ctx, bx, by, 1, 7, 6, 1, '#5a4030', s); // tray highlight
-
-  // Power light
-  pxAt(ctx, bx, by, 6, 1, 1, 1, '#40e040', s);
-
-  // Steam particles (animated via position variance)
-  pxAt(ctx, bx, by, 3, -1, 1, 1, 'rgba(220,220,220,0.25)', s);
-  pxAt(ctx, bx, by, 4, -2, 1, 1, 'rgba(200,200,200,0.18)', s);
-  pxAt(ctx, bx, by, 5, -3, 1, 1, 'rgba(200,200,200,0.1)', s);
-
-  // Shadow
-  pxAt(ctx, bx, by, 0, 10, 8, 1, 'rgba(0,0,0,0.08)', s);
+  pxAt(ctx, bx, by, 0, 0, 14, 12, '#2d2f3b', s);
+  pxAt(ctx, bx, by, 0, 0, 14, 1, '#444757', s);
+  pxAt(ctx, bx, by, 0, 0, 1, 12, '#4f5263', s);
+  pxAt(ctx, bx, by, 13, 0, 1, 12, '#1d1f27', s);
+  pxAt(ctx, bx, by, 2, 2, 10, 1, '#9fa5af', s);
+  pxAt(ctx, bx, by, 2, 5, 10, 1, '#9fa5af', s);
+  pxAt(ctx, bx, by, 5, 3, 3, 2, '#616776', s);
+  pxAt(ctx, bx, by, 11, 1, 1, 1, '#4fd463', s);
+  pxAt(ctx, bx, by, 3, 8, 8, 3, '#4a3122', s);
+  pxAt(ctx, bx, by, 3, 8, 8, 1, '#654531', s);
+  pxAt(ctx, bx, by, 5, -1, 1, 1, 'rgba(220,220,220,0.25)', s);
+  pxAt(ctx, bx, by, 6, -2, 1, 1, 'rgba(210,210,210,0.15)', s);
 }
 
 export function drawCouch(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
-  if (drawFurnitureSprite(ctx, 'couch', x, y, 26 * s, 16 * s)) return;
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
   const by = y / s;
 
-  const couchColor = '#3a4a6a';
-  const couchLight = lighten(couchColor, 0.12);
-  const couchDark = darken(couchColor, 0.15);
-  const couchShadow = darken(couchColor, 0.25);
+  const c = '#3c4f73';
+  const l = lighten(c, 0.12);
+  const d = darken(c, 0.15);
 
-  // Back rest
-  pxAt(ctx, bx, by, 1, 0, 18, 4, couchColor, s);
-  pxAt(ctx, bx, by, 2, 0, 16, 1, couchLight, s); // top highlight
-  pxAt(ctx, bx, by, 1, 0, 1, 4, couchLight, s); // left highlight
-  pxAt(ctx, bx, by, 18, 0, 1, 4, couchDark, s); // right shadow
+  pxAt(ctx, bx, by, 2, 0, 28, 6, c, s);
+  pxAt(ctx, bx, by, 3, 0, 26, 1, l, s);
+  pxAt(ctx, bx, by, 2, 0, 1, 6, l, s);
+  pxAt(ctx, bx, by, 29, 0, 1, 6, d, s);
 
-  // Seat cushions
-  pxAt(ctx, bx, by, 1, 4, 18, 4, couchColor, s);
-  pxAt(ctx, bx, by, 1, 4, 18, 1, couchLight, s); // cushion top highlight
+  pxAt(ctx, bx, by, 2, 6, 28, 8, c, s);
+  pxAt(ctx, bx, by, 2, 6, 28, 1, l, s);
+  pxAt(ctx, bx, by, 16, 6, 1, 7, d, s);
+  pxAt(ctx, bx, by, 2, 13, 28, 1, d, s);
 
-  // Cushion divider line
-  pxAt(ctx, bx, by, 10, 4, 1, 3, couchDark, s);
+  pxAt(ctx, bx, by, 0, 2, 3, 12, darken(c, 0.06), s);
+  pxAt(ctx, bx, by, 0, 2, 3, 1, l, s);
+  pxAt(ctx, bx, by, 29, 2, 3, 12, d, s);
 
-  // Fabric texture dots
-  pxAt(ctx, bx, by, 4, 5, 1, 1, couchLight, s);
-  pxAt(ctx, bx, by, 7, 6, 1, 1, couchLight, s);
-  pxAt(ctx, bx, by, 13, 5, 1, 1, couchLight, s);
-  pxAt(ctx, bx, by, 16, 6, 1, 1, couchLight, s);
-
-  // Stitching lines
-  pxAt(ctx, bx, by, 2, 3, 16, 1, couchDark, s); // between back and seat
-  pxAt(ctx, bx, by, 2, 7, 16, 1, couchDark, s); // seat front edge
-
-  // Armrests with roundness
-  pxAt(ctx, bx, by, 0, 1, 2, 7, darken(couchColor, 0.08), s);
-  pxAt(ctx, bx, by, 0, 1, 2, 1, couchLight, s); // arm top highlight
-  pxAt(ctx, bx, by, 0, 1, 1, 7, couchLight, s); // arm left highlight
-  pxAt(ctx, bx, by, 18, 1, 2, 7, couchDark, s);
-  pxAt(ctx, bx, by, 18, 1, 2, 1, couchColor, s); // right arm top
-
-  // Legs
-  pxAt(ctx, bx, by, 1, 8, 2, 2, '#2a2020', s);
-  pxAt(ctx, bx, by, 1, 8, 1, 1, '#3a3030', s); // leg highlight
-  pxAt(ctx, bx, by, 17, 8, 2, 2, '#2a2020', s);
-
-  // Shadow
-  pxAt(ctx, bx, by, 1, 10, 18, 1, 'rgba(0,0,0,0.1)', s);
-  pxAt(ctx, bx, by, 2, 11, 16, 1, 'rgba(0,0,0,0.05)', s);
+  pxAt(ctx, bx, by, 3, 14, 3, 2, '#2a2020', s);
+  pxAt(ctx, bx, by, 26, 14, 3, 2, '#2a2020', s);
+  pxAt(ctx, bx, by, 3, 16, 26, 1, 'rgba(0,0,0,0.1)', s);
 }
 
 export function drawLandscapePainting(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
-  if (drawFurnitureSprite(ctx, 'painting-landscape', x, y, 18 * s, 11 * s)) return;
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
   const by = y / s;
 
-  // Frame with highlight/shadow
-  pxAt(ctx, bx, by, 0, 0, 16, 10, '#6a4a30', s);
-  pxAt(ctx, bx, by, 0, 0, 16, 1, '#7a5a40', s); // top highlight
-  pxAt(ctx, bx, by, 0, 0, 1, 10, '#7a5a40', s); // left highlight
-  pxAt(ctx, bx, by, 15, 0, 1, 10, '#5a3a20', s); // right shadow
-  pxAt(ctx, bx, by, 0, 9, 16, 1, '#5a3a20', s); // bottom shadow
-
-  // Inner frame border
-  pxAt(ctx, bx, by, 1, 1, 14, 1, '#5a3a20', s);
-  pxAt(ctx, bx, by, 1, 8, 14, 1, '#4a2a18', s);
-  pxAt(ctx, bx, by, 1, 1, 1, 8, '#5a3a20', s);
-  pxAt(ctx, bx, by, 14, 1, 1, 8, '#4a2a18', s);
-
-  // Sky gradient
-  pxAt(ctx, bx, by, 2, 2, 12, 1, '#80b0e0', s);
-  pxAt(ctx, bx, by, 2, 3, 12, 2, '#6090c0', s);
-  // Sun
-  pxAt(ctx, bx, by, 11, 2, 2, 2, '#f0e060', s);
-  pxAt(ctx, bx, by, 11, 2, 1, 1, '#f8f0a0', s); // sun highlight
-  // Clouds
-  pxAt(ctx, bx, by, 4, 2, 3, 1, '#e0e8f0', s);
-  pxAt(ctx, bx, by, 3, 3, 4, 1, '#d0d8e0', s);
-  // Hills
-  pxAt(ctx, bx, by, 2, 5, 12, 3, '#4a8050', s);
-  pxAt(ctx, bx, by, 2, 5, 5, 1, '#3a7040', s);
-  pxAt(ctx, bx, by, 7, 5, 4, 1, '#5a9a68', s); // hill highlight
-  pxAt(ctx, bx, by, 10, 6, 4, 1, '#3a6a38', s); // hill shadow
-  pxAt(ctx, bx, by, 2, 7, 12, 1, '#3a6a38', s);
-
-  // Shadow below painting on wall
-  pxAt(ctx, bx, by, 1, 10, 14, 1, 'rgba(0,0,0,0.12)', s);
-  pxAt(ctx, bx, by, 2, 11, 12, 1, 'rgba(0,0,0,0.06)', s);
+  pxAt(ctx, bx, by, 0, 0, 26, 14, '#6f4f36', s);
+  pxAt(ctx, bx, by, 0, 0, 26, 1, '#846147', s);
+  pxAt(ctx, bx, by, 0, 0, 1, 14, '#8c694d', s);
+  pxAt(ctx, bx, by, 25, 0, 1, 14, '#573d29', s);
+  pxAt(ctx, bx, by, 1, 1, 24, 12, '#5f88b8', s);
+  pxAt(ctx, bx, by, 1, 1, 24, 2, '#7aa5d6', s);
+  pxAt(ctx, bx, by, 18, 2, 3, 2, '#f1dc69', s);
+  pxAt(ctx, bx, by, 4, 3, 5, 1, '#e2e7ee', s);
+  pxAt(ctx, bx, by, 1, 7, 24, 5, '#4d8253', s);
+  pxAt(ctx, bx, by, 1, 8, 24, 4, '#3f6e45', s);
+  pxAt(ctx, bx, by, 8, 6, 7, 2, '#5f9a67', s);
+  pxAt(ctx, bx, by, 1, 14, 24, 1, 'rgba(0,0,0,0.12)', s);
 }
 
 export function drawWhiteboard(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
-  if (drawFurnitureSprite(ctx, 'whiteboard', x, y, 20 * s, 13 * s)) return;
   ctx.imageSmoothingEnabled = false;
   const bx = x / s;
   const by = y / s;
 
-  // Board frame with shading
-  pxAt(ctx, bx, by, 0, 0, 16, 10, '#b0b0b8', s);
-  pxAt(ctx, bx, by, 0, 0, 16, 1, '#c0c0c8', s); // top highlight
-  pxAt(ctx, bx, by, 0, 0, 1, 10, '#c0c0c8', s); // left highlight
-  pxAt(ctx, bx, by, 15, 0, 1, 10, '#9a9aa0', s); // right shadow
+  pxAt(ctx, bx, by, 0, 0, 30, 16, '#b7b7bf', s);
+  pxAt(ctx, bx, by, 0, 0, 30, 1, '#c9c9d1', s);
+  pxAt(ctx, bx, by, 0, 0, 1, 16, '#d0d0d8', s);
+  pxAt(ctx, bx, by, 29, 0, 1, 16, '#9a9aa2', s);
+  pxAt(ctx, bx, by, 1, 1, 28, 11, '#f2f2f0', s);
+  pxAt(ctx, bx, by, 1, 1, 28, 1, '#fbfbf8', s);
 
-  // White surface
-  pxAt(ctx, bx, by, 1, 1, 14, 7, '#f0f0f0', s);
-  pxAt(ctx, bx, by, 1, 1, 14, 1, '#f8f8f8', s); // top surface highlight
+  pxAt(ctx, bx, by, 3, 3, 11, 1, '#c44a4a', s);
+  pxAt(ctx, bx, by, 4, 5, 14, 1, '#4476c4', s);
+  pxAt(ctx, bx, by, 3, 7, 10, 1, '#4aa059', s);
+  pxAt(ctx, bx, by, 18, 3, 8, 1, '#4476c4', s);
+  pxAt(ctx, bx, by, 18, 7, 8, 1, '#4476c4', s);
+  pxAt(ctx, bx, by, 18, 3, 1, 5, '#4476c4', s);
+  pxAt(ctx, bx, by, 25, 3, 1, 5, '#4476c4', s);
 
-  // Scribble lines (diagrams/text)
-  pxAt(ctx, bx, by, 2, 2, 6, 1, '#d04040', s);
-  pxAt(ctx, bx, by, 3, 4, 8, 1, '#3060c0', s);
-  pxAt(ctx, bx, by, 2, 6, 5, 1, '#30a040', s);
-  // Box diagram
-  pxAt(ctx, bx, by, 10, 2, 3, 3, 'rgba(0,0,0,0)', s);
-  pxAt(ctx, bx, by, 10, 2, 3, 1, '#3060c0', s);
-  pxAt(ctx, bx, by, 10, 4, 3, 1, '#3060c0', s);
-  pxAt(ctx, bx, by, 10, 2, 1, 3, '#3060c0', s);
-  pxAt(ctx, bx, by, 12, 2, 1, 3, '#3060c0', s);
-
-  // Marker tray
-  pxAt(ctx, bx, by, 1, 8, 14, 2, '#9a9aa0', s);
-  pxAt(ctx, bx, by, 1, 8, 14, 1, '#aaaab0', s); // tray highlight
-  // Markers
-  pxAt(ctx, bx, by, 3, 8, 2, 1, '#d04040', s);
-  pxAt(ctx, bx, by, 6, 8, 2, 1, '#3060c0', s);
-  pxAt(ctx, bx, by, 9, 8, 2, 1, '#30a040', s);
-
-  // Shadow below whiteboard
-  pxAt(ctx, bx, by, 1, 10, 14, 1, 'rgba(0,0,0,0.1)', s);
-  pxAt(ctx, bx, by, 2, 11, 12, 1, 'rgba(0,0,0,0.05)', s);
+  pxAt(ctx, bx, by, 2, 12, 26, 3, '#9b9ba3', s);
+  pxAt(ctx, bx, by, 2, 12, 26, 1, '#afafb7', s);
+  pxAt(ctx, bx, by, 4, 12, 3, 1, '#c44a4a', s);
+  pxAt(ctx, bx, by, 9, 12, 3, 1, '#4476c4', s);
+  pxAt(ctx, bx, by, 14, 12, 3, 1, '#4aa059', s);
 }

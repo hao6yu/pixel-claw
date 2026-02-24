@@ -96,14 +96,14 @@ export class Renderer {
 
     // ── Layer 3: Wall-mounted furniture ──
     const L = LAYOUT;
-    // Lead office wall decorations (right-sized so full icon is visible)
-    drawBookshelf(ctx, 12 * s, 8 * s, s);
-    drawLandscapePainting(ctx, 74 * s, 14 * s, s);
+    // Lead office wall decorations (intentional spacing and bigger silhouettes)
+    drawBookshelf(ctx, 10 * s, 8 * s, s);
+    drawLandscapePainting(ctx, 72 * s, 10 * s, s);
 
     // Main floor wall decorations
-    drawBookshelf(ctx, (L.DIVIDER_X + 10) * s, 8 * s, s);
-    drawWhiteboard(ctx, (L.DIVIDER_X + 56) * s, 12 * s, s);
-    drawClock(ctx, (L.DIVIDER_X + 116) * s, 12 * s, s, this.globalTime);
+    drawBookshelf(ctx, (L.DIVIDER_X + 8) * s, 8 * s, s);
+    drawWhiteboard(ctx, (L.DIVIDER_X + 50) * s, 8 * s, s);
+    drawClock(ctx, (L.DIVIDER_X + 124) * s, 10 * s, s, this.globalTime);
 
     // ── Collect all ground-level items for y-sort ──
     interface Drawable {
@@ -112,15 +112,15 @@ export class Renderer {
     }
     const drawables: Drawable[] = [];
 
-    // Break room furniture (properly scaled and spaced)
+    // Break room furniture (larger NES-style forms with cleaner spacing)
     drawables.push({
-      y: L.BREAK_START_Y + 34,
+      y: L.BREAK_START_Y + 44,
       draw: () => {
-        const breakY = L.DIVIDER_Y + 10;
-        drawWaterCooler(ctx, (L.BREAK_START_X + 2) * s, breakY * s, s);
-        drawVendingMachine(ctx, (L.BREAK_START_X + 24) * s, breakY * s, s);
-        drawCoffeeMachine(ctx, (L.BREAK_START_X + 48) * s, (breakY + 10) * s, s);
-        drawCouch(ctx, (L.BREAK_START_X + 50) * s, (breakY + 30) * s, s);
+        const breakY = L.DIVIDER_Y + 8;
+        drawWaterCooler(ctx, (L.BREAK_START_X + 8) * s, breakY * s, s);
+        drawVendingMachine(ctx, (L.BREAK_START_X + 28) * s, breakY * s, s);
+        drawCoffeeMachine(ctx, (L.BREAK_START_X + 58) * s, (breakY + 8) * s, s);
+        drawCouch(ctx, (L.BREAK_START_X + 92) * s, (breakY + 26) * s, s);
       }
     });
 
