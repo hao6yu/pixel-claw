@@ -5,9 +5,9 @@ const VW = 320;
 const VH = 256;
 const WALL_H = 38;
 
-// Zone layout tuned to Donarg office composition
-const DIVIDER_X = 156;
-const DIVIDER_Y = 138;
+// Zone layout tuned to curated Donarg crop composition
+const DIVIDER_X = 196;
+const DIVIDER_Y = 142;
 
 export const ZONES: Record<ZoneType, Zone> = {
   'lead-office': {
@@ -39,23 +39,23 @@ export const LAYOUT = {
   WALL_H,
   DIVIDER_X,
   DIVIDER_Y,
-  // Manager office (Max) in a private room
-  LEAD_DESK_X: 54,
-  LEAD_DESK_Y: 78,
-  // Open office workspace (main agents)
+  // Manager office (Max) — right-side private office
+  LEAD_DESK_X: 252,
+  LEAD_DESK_Y: 206,
+  // Open office workspace — center-left desk cluster
   MAIN_DESKS_PER_ROW: 3,
-  MAIN_DESK_START_X: 176,
+  MAIN_DESK_START_X: 44,
   MAIN_DESK_START_Y: 74,
-  MAIN_DESK_SPACING_X: 38,
-  MAIN_DESK_SPACING_Y: 30,
-  // Break room/lounge positions
-  BREAK_START_X: 36,
-  BREAK_START_Y: 198,
-  BREAK_SPACING_X: 20,
-  // Meeting area (sub-agents gather here)
-  SUB_START_X: 198,
+  MAIN_DESK_SPACING_X: 52,
+  MAIN_DESK_SPACING_Y: 38,
+  // Break room/lounge — right upper pantry/table area
+  BREAK_START_X: 226,
+  BREAK_START_Y: 64,
+  BREAK_SPACING_X: 18,
+  // Meeting area — lower-left open room (per request)
+  SUB_START_X: 40,
   SUB_START_Y: 188,
-  SUB_SPACING_X: 20,
+  SUB_SPACING_X: 24,
   SUB_PER_ROW: 5,
   SUB_SPACING_Y: 24,
   // Doorway in the vertical wall between lead office and main floor
