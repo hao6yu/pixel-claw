@@ -39,12 +39,29 @@ export class Renderer {
     this.resize();
     if (USE_DONARG_BACKGROUND) {
       const img = new Image();
-      img.onload = () => { this.donargBg = img; };
+      img.onload = () => {
+        this.donargBg = img;
+        this.zones.setBackgroundImage(img, DONARG_BOARD_SRC);
+      };
       img.src = DONARG_BG_SRC;
     }
     window.addEventListener('resize', () => this.resize());
     canvas.addEventListener('click', (e) => this.handleClick(e));
+
+    // NavDebug: show virtual coordinates on mouse move
+    if (new URLSearchParams(window.location.search).has('navDebug') || localStorage.getItem('pixelclaw.navDebug') === '1') {
+      this.mouseVirtual = { x: 0, y: 0 };
+      canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        this.mouseVirtual = {
+          x: Math.round((e.clientX - rect.left) / this.scale),
+          y: Math.round((e.clientY - rect.top) / this.scale),
+        };
+      });
+    }
   }
+
+  private mouseVirtual?: { x: number; y: number };
 
   private resize() {
     const vw = window.innerWidth;
@@ -288,7 +305,20 @@ export class Renderer {
     ctx.setLineDash([]);
 
     // ── Nav debug overlay (toggle with ?navDebug=1 or localStorage pixelclaw.navDebug=1) ──
-    this.zones.drawNavDebug(ctx, s);
+    this.zones.drawNavDebug(ctx, s, this.state.agents);
+
+    // NavDebug: mouse coordinate readout
+    if (this.mouseVirtual) {
+      const mx = this.mouseVirtual.x;
+      const my = this.mouseVirtual.y;
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.75)';
+      ctx.fillRect(0, 0, 140 * (s / 3), 16 * (s / 3));
+      ctx.fillStyle = '#fff';
+      ctx.font = `${11 * (s / 3)}px monospace`;
+      ctx.fillText(`v(${mx}, ${my})  cell(${Math.floor(mx / 4)}, ${Math.floor(my / 4)})`, 4 * (s / 3), 12 * (s / 3));
+      ctx.restore();
+    }
 
     // ── Layer 6: UI overlays (optional) ──
     if (SHOW_AGENT_LABELS) {

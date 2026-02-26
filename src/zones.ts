@@ -68,10 +68,16 @@ const BREAK_ROOM_POIS: Array<{ x: number; y: number; name: string }> = [
   { x: 290, y: 55, name: 'fridge' },             // fridge area
   { x: 210, y: 90, name: 'meeting-table' },      // meeting table
   { x: 270, y: 110, name: 'couch' },             // couch/lounge
-  { x: 10, y: 50, name: 'bookshelf-left' },      // left bookshelf
-  { x: 50, y: 50, name: 'bookshelf-right' },     // right bookshelf
-  { x: 160, y: 50, name: 'water-cooler' },       // near water cooler/door
-  { x: 80, y: 100, name: 'wander-center' },      // open floor
+  { x: 210, y: 65, name: 'water-cooler' },       // near water cooler/door
+  { x: 260, y: 80, name: 'wander-center' },      // open floor
+];
+// Points of interest in the lead office for occasional wandering
+const LEAD_OFFICE_POIS: Array<{ x: number; y: number; name: string }> = [
+  { x: 220, y: 180, name: 'bookshelf' },
+  { x: 290, y: 180, name: 'window' },
+  { x: 260, y: 192, name: 'pacing' },
+  { x: 280, y: 200, name: 'plant' },
+  { x: 220, y: 238, name: 'couch' },
 ];
 const WALK_SPEED = 40;
 const NAV_CELL = 4;
@@ -99,7 +105,7 @@ export const OFFICE_SEAT_MAP: Record<ZoneType, Seat[]> = {
       zone: 'lead-office',
       role: 'manager',
       desk: { x: 244, y: 214 },
-      seat: { x: 244, y: 196, facing: 'left' },
+      seat: { x: 244, y: 196, facing: 'up' },
     },
   ],
 
@@ -170,62 +176,208 @@ class NavigationGrid {
   readonly width = Math.ceil(VW / NAV_CELL);
   readonly height = Math.ceil(VH / NAV_CELL);
   private walkable: boolean[] = new Array(this.width * this.height).fill(false);
+  private imageReady = false;
 
   constructor() {
-    this.rebuild();
+    // Start with everything walkable until the image loads.
+    this.walkable.fill(true);
   }
 
-  rebuild(): void {
+  /**
+   * Build the walkability grid by sampling the background image pixels.
+   * Renders the board region onto an offscreen canvas at exactly 320×256
+   * so pixel positions match the virtual coordinate system perfectly.
+   */
+  rebuildFromImage(img: HTMLImageElement, srcRect: { x: number; y: number; w: number; h: number }): void {
+    // Draw the board region at virtual resolution onto an offscreen canvas.
+    const offscreen = document.createElement('canvas');
+    offscreen.width = VW;
+    offscreen.height = VH;
+    const octx = offscreen.getContext('2d')!;
+    octx.imageSmoothingEnabled = false;
+    octx.drawImage(img, srcRect.x, srcRect.y, srcRect.w, srcRect.h, 0, 0, VW, VH);
+    const imageData = octx.getImageData(0, 0, VW, VH);
+    const px = imageData.data; // RGBA flat array, 4 bytes per pixel
+
     this.walkable.fill(false);
 
-    // Interior floor region of board; keep hard boundary so agents cannot leave board.
-    this.fillRect(6, 6, VW - 12, VH - 12, true);
+    // For each nav cell, sample a small area and classify as floor or obstacle.
+    for (let cy = 0; cy < this.height; cy++) {
+      for (let cx = 0; cx < this.width; cx++) {
+        // Sample 4 points within the cell for robustness
+        let floorVotes = 0;
+        const samples = [
+          { x: cx * NAV_CELL + 1, y: cy * NAV_CELL + 1 },
+          { x: cx * NAV_CELL + 2, y: cy * NAV_CELL + 1 },
+          { x: cx * NAV_CELL + 1, y: cy * NAV_CELL + 2 },
+          { x: cx * NAV_CELL + 2, y: cy * NAV_CELL + 2 },
+        ];
 
-    const blockers: Rect[] = [
-      // Top wall fixtures
-      { x: 8, y: 10, w: 146, h: 20 },
-      { x: 196, y: 10, w: 118, h: 20 },
+        for (const s of samples) {
+          const px0 = Math.min(s.x, VW - 1);
+          const py0 = Math.min(s.y, VH - 1);
+          const idx = (py0 * VW + px0) * 4;
+          const r = px[idx], g = px[idx + 1], b = px[idx + 2];
+          if (this.isFloorColor(r, g, b)) floorVotes++;
+        }
 
-      // Main-floor 6 desks
-      { x: 25, y: 58, w: 28, h: 18 },
-      { x: 76, y: 58, w: 28, h: 18 },
-      { x: 127, y: 58, w: 28, h: 18 },
-      { x: 25, y: 104, w: 28, h: 18 },
-      { x: 76, y: 104, w: 28, h: 18 },
-      { x: 127, y: 104, w: 28, h: 18 },
-
-      // Break-room tables
-      { x: 247, y: 80, w: 48, h: 18 },
-      { x: 250, y: 100, w: 40, h: 18 },
-
-      // Lead-office desk
-      { x: 102, y: 206, w: 46, h: 18 },
-
-      // Lounge + decor
-      { x: 18, y: 186, w: 40, h: 10 },
-      { x: 157, y: 182, w: 40, h: 14 },
-      { x: 130, y: 242, w: 40, h: 10 },
-
-      // Sub-agent desk and lower-right fixtures
-      { x: 229, y: 214, w: 28, h: 18 },
-      { x: 203, y: 152, w: 108, h: 20 },
-      { x: 282, y: 236, w: 30, h: 16 },
-
-      // Vertical divider wall (x=196) with doorway gap at y=78-98
-      { x: 194, y: 38, w: 4, h: 40 },   // above doorway (y=38 to y=78)
-      { x: 194, y: 98, w: 4, h: 44 },   // below doorway (y=98 to y=142)
-
-      // Horizontal divider wall (y=142)
-      { x: 0, y: 140, w: 196, h: 4 },
-    ];
-
-    for (const block of blockers) {
-      this.blockRect(block.x, block.y, block.w, block.h);
+        // Cell is walkable if majority of samples are floor
+        this.walkable[cy * this.width + cx] = floorVotes >= 2;
+      }
     }
 
-    // Ensure every seat tile is walkable.
+    // Hard boundary — agents must stay on the board
+    for (let cy = 0; cy < this.height; cy++) {
+      for (let cx = 0; cx < this.width; cx++) {
+        if (cx < 1 || cx >= this.width - 1 || cy < 1 || cy >= this.height - 1) {
+          this.walkable[cy * this.width + cx] = false;
+        }
+      }
+    }
+
+    // Structural wall blockers — walls that use floor-colored pixels and are
+    // invisible to the color-based detection.  Added on top of the image grid.
+    this.addStructuralWalls();
+
+    // Ensure every seat tile is walkable and reachable from open floor.
+    this.ensureSeatAccess();
+
+    this.imageReady = true;
+    this.validateConnectivity();
+    console.log('[NavGrid] Rebuilt from background image');
+  }
+
+  /** Classify a pixel as walkable floor based on the Donarg office palette. */
+  private isFloorColor(r: number, g: number, b: number): boolean {
+    // Teal/cyan floor tiles: green and blue channels dominate over red.
+    // Main floor, break room, and lead office all use variations of this palette.
+    // The diamond-pattern floor tiles have these characteristics:
+    //   - G >= R + 10 (distinctly more green than red)
+    //   - B >= R + 10 (distinctly more blue than red)
+    //   - Not too bright (walls are near-white: r>220, g>220, b>220)
+    //   - Not too dark (furniture shadows: all channels < 50)
+    const isTeal = g >= r + 10 && b >= r + 10 && g > 80 && b > 80 && r < 200;
+    return isTeal;
+  }
+
+  /**
+   * Add wall blockers for structural walls whose pixels are teal (floor-colored)
+   * and therefore invisible to the image-based color detection.
+   *
+   * Pixel analysis findings:
+   *   - Vertical wall body (x=196-204) is teal rgb(121,169,174).
+   *     Dark edge at x=205 + white face at x=206-209 are caught by image scan.
+   *     The teal body (cells 49-50) is NOT caught → needs structural blockers.
+   *     The wall's dark edge only appears from y=79 downward.
+   *     Above y=79 there is NO wall (= the doorway between main-floor ↔ break-room).
+   *
+   *   - Horizontal wall left side (y≈142, x=0..196) is entirely teal.
+   *     Horizontal wall right side is caught by image scan (non-teal pixels at y≥141)
+   *     with a natural doorway at x=264-279 (cells 66-69) for y=141-144.
+   */
+  private addStructuralWalls(): void {
+    const vWallCx = Math.floor(DIVIDER_X / NAV_CELL); // cell 49
+
+    // --- Vertical divider wall (teal body at cells 49-50) ---
+    // Wall starts at y=79 where the dark edge appears in the art.
+    // Above y=79 is the doorway opening (all teal, no wall visible).
+    // The wall runs continuously from y=79 to the bottom of the board.
+    // A narrow lower doorway at y≈168-184 provides sub-agent-zone ↔ lead-office access.
+    for (let cy = Math.floor(79 / NAV_CELL); cy < this.height; cy++) {
+      const yPx = cy * NAV_CELL;
+      if (yPx >= 168 && yPx < 184) continue; // lower doorway
+      for (let dx = 0; dx < 2; dx++) {
+        this.walkable[cy * this.width + vWallCx + dx] = false;
+      }
+    }
+    // Force-clear the image-detected dark edge (cell 51) inside the lower doorway
+    // so agents have a full 3-cell-wide passage matching the upper doorway.
+    for (let cy = Math.floor(168 / NAV_CELL); cy < Math.floor(184 / NAV_CELL); cy++) {
+      this.walkable[cy * this.width + vWallCx + 2] = true;
+    }
+
+    // --- Horizontal divider walls ---
+    // LEFT side: The visual wall is at y≈157 (dark edge + white/beige face), NOT at
+    // DIVIDER_Y=142.  The image scan already catches it (non-teal pixels) with a
+    // natural teal doorway at x≈155-190.  No structural blocker needed.
+    //
+    // RIGHT side: Also caught by image scan (non-teal at y≥141) with a natural
+    // teal doorway at x=264-279 for y=141-144.  No structural blocker needed.
+
+    // --- Top wall at y ≈ 38 (WALL_H) ---
+    // Reinforce — image scan usually catches it but some teal pixels leak through.
+    const topWallCy = Math.floor(WALL_H / NAV_CELL);
+    for (let cx = 0; cx < this.width; cx++) {
+      for (let dy = -1; dy <= 0; dy++) {
+        const cy = topWallCy + dy;
+        if (cy >= 0 && cy < this.height) this.walkable[cy * this.width + cx] = false;
+      }
+    }
+  }
+
+  /** Punch seat cells walkable and carve approach corridors to open floor. */
+  private ensureSeatAccess(): void {
+    const preSeats = this.walkable.slice();
+
     for (const seat of ALL_SEATS) {
-      this.fillRect(seat.seat.x - 1, seat.seat.y - 1, 3, 3, true);
+      // Punch the seat cell itself
+      this.fillRect(seat.seat.x - 2, seat.seat.y - 2, 5, 5, true);
+
+      // Carve a corridor from the seat outward in the approach direction
+      // (opposite of facing) until it reaches original walkable floor.
+      const dir = seat.seat.facing;
+      const dcx = dir === 'right' ? -1 : dir === 'left' ? 1 : 0;
+      const dcy = dir === 'down' ? -1 : dir === 'up' ? 1 : 0;
+
+      const startCell = this.toCell(seat.seat.x, seat.seat.y);
+      let ccx = startCell.cx + dcx;
+      let ccy = startCell.cy + dcy;
+
+      for (let i = 0; i < 12; i++) {
+        if (ccx < 0 || ccx >= this.width || ccy < 0 || ccy >= this.height) break;
+        if (preSeats[ccy * this.width + ccx]) break;
+        this.walkable[ccy * this.width + ccx] = true;
+        ccx += dcx;
+        ccy += dcy;
+      }
+    }
+  }
+
+  /** Log whether all seats are reachable via BFS from open floor. */
+  private validateConnectivity(): void {
+    const origin = this.toCell(100, 90);
+    if (!this.isWalkableCell(origin.cx, origin.cy)) {
+      // Find a nearby walkable cell as origin
+      const alt = this.clampToNearestWalkable(100, 90);
+      origin.cx = this.toCell(alt.x, alt.y).cx;
+      origin.cy = this.toCell(alt.x, alt.y).cy;
+    }
+    const reachable = new Set<string>();
+    const q: Cell[] = [origin];
+    reachable.add(`${origin.cx},${origin.cy}`);
+    while (q.length > 0) {
+      const cur = q.shift()!;
+      for (const next of [
+        { cx: cur.cx + 1, cy: cur.cy },
+        { cx: cur.cx - 1, cy: cur.cy },
+        { cx: cur.cx, cy: cur.cy + 1 },
+        { cx: cur.cx, cy: cur.cy - 1 },
+      ]) {
+        const key = `${next.cx},${next.cy}`;
+        if (reachable.has(key)) continue;
+        if (!this.isWalkableCell(next.cx, next.cy)) continue;
+        reachable.add(key);
+        q.push(next);
+      }
+    }
+
+    console.log(`[NavGrid] Reachable cells: ${reachable.size} / ${this.walkable.filter(Boolean).length} walkable`);
+    for (const seat of ALL_SEATS) {
+      const cell = this.toCell(seat.seat.x, seat.seat.y);
+      const key = `${cell.cx},${cell.cy}`;
+      if (!reachable.has(key)) {
+        console.warn(`[NavGrid] UNREACHABLE seat ${seat.id} at (${seat.seat.x},${seat.seat.y}) cell (${cell.cx},${cell.cy})`);
+      }
     }
   }
 
@@ -309,7 +461,7 @@ class NavigationGrid {
 
     const goalKey = `${goal.cx},${goal.cy}`;
     if (!seen.has(goalKey)) {
-      // BFS failed — fallback to direct endpoint
+      console.warn(`[NavGrid] BFS FAILED from (${start.cx},${start.cy}) to (${goal.cx},${goal.cy}) — falling back to direct line`);
       return [endPt];
     }
 
@@ -351,7 +503,7 @@ class NavigationGrid {
     for (let cy = 0; cy < this.height; cy++) {
       for (let cx = 0; cx < this.width; cx++) {
         const ok = this.isWalkableCell(cx, cy);
-        ctx.fillStyle = ok ? 'rgba(80,220,120,0.18)' : 'rgba(220,70,70,0.10)';
+        ctx.fillStyle = ok ? 'rgba(80,220,120,0.25)' : 'rgba(220,70,70,0.25)';
         ctx.fillRect(
           Math.round(cx * this.cellSize * s),
           Math.round(cy * this.cellSize * s),
@@ -381,6 +533,11 @@ class NavigationGrid {
 export class ZoneManager {
   private leadAgentId: string | null = null;
   private nav = new NavigationGrid();
+
+  /** Call once after the Donarg background image loads to build accurate nav grid. */
+  setBackgroundImage(img: HTMLImageElement, srcRect: { x: number; y: number; w: number; h: number }): void {
+    this.nav.rebuildFromImage(img, srcRect);
+  }
 
   assignZone(agent: AgentState, allMainAgents: AgentState[]): ZoneType {
     if (agent.isSubAgent) return 'sub-agent-zone';
@@ -439,10 +596,12 @@ export class ZoneManager {
     const occupied = new Set<string>();
 
     for (const agent of allAgents) {
-      // Don't reassign zone while walking — direct line movement to target
-      if (agent.activity === 'walking' && agent.targetX !== undefined && agent.targetY !== undefined) {
-        const dx = agent.targetX - agent.x;
-        const dy = agent.targetY - agent.y;
+      // Follow waypoint path — navigate around obstacles
+      if (agent.activity === 'walking' && agent.walkPath && agent.walkPath.length > 0) {
+        const wi = agent.walkIndex ?? 0;
+        const wp = agent.walkPath[wi];
+        const dx = wp.x - agent.x;
+        const dy = wp.y - agent.y;
         const dist = Math.hypot(dx, dy);
         const step = WALK_SPEED * dt;
 
@@ -455,12 +614,21 @@ export class ZoneManager {
         }
 
         if (dist <= step || dist < 0.5) {
-          agent.x = agent.targetX;
-          agent.y = agent.targetY;
-          agent.zone = agent.targetZone || agent.zone;
-          agent.activity = agent.previousActivity || 'idle';
-          agent.previousActivity = undefined;
-          agent.targetZone = undefined;
+          agent.x = wp.x;
+          agent.y = wp.y;
+
+          // Advance to next waypoint or finish
+          if (wi + 1 < agent.walkPath.length) {
+            agent.walkIndex = wi + 1;
+          } else {
+            // Reached final waypoint
+            agent.walkPath = undefined;
+            agent.walkIndex = undefined;
+            agent.zone = agent.targetZone || agent.zone;
+            agent.activity = agent.previousActivity || 'idle';
+            agent.previousActivity = undefined;
+            agent.targetZone = undefined;
+          }
         } else {
           agent.x += (dx / dist) * step;
           agent.y += (dy / dist) * step;
@@ -496,12 +664,13 @@ export class ZoneManager {
       }
 
       const alreadyInBreakRoom = agent.zone === 'break-room' && newZone === 'break-room';
+      const alreadyInLeadOffice = agent.zone === 'lead-office' && newZone === 'lead-office';
       const shouldWalk =
         agent.activity !== 'walking' &&
         !alreadyInBreakRoom &&
+        !alreadyInLeadOffice &&
         (agent.zone !== newZone || changedTarget || Math.hypot(agent.x - target.x, agent.y - target.y) > 2);
 
-      // Debug every frame for first 20s
       if (shouldWalk) {
         agent.targetZone = newZone;
         agent.targetX = target.x;
@@ -509,6 +678,8 @@ export class ZoneManager {
         agent.previousActivity = agent.activity;
         agent.activity = 'walking';
         agent.seated = false;
+        agent.walkPath = this.nav.findPath(agent.x, agent.y, target.x, target.y);
+        agent.walkIndex = 0;
       }
 
       // No position clamping — direct movement handles positioning
@@ -532,14 +703,52 @@ export class ZoneManager {
             agent.seated = false;
             agent.targetX = poi.x;
             agent.targetY = poi.y;
+            agent.walkPath = this.nav.findPath(agent.x, agent.y, poi.x, poi.y);
+            agent.walkIndex = 0;
           }
           agent.wanderTimer = 3 + Math.random() * 6; // 3-9 seconds until next wander
         }
-      } else if (agent.zone !== 'break-room') {
+      } else if (agent.zone !== 'break-room' && agent.zone !== 'lead-office') {
         agent.wanderTimer = undefined;
       }
 
-      agent.seated = agent.activity !== 'walking' && agent.activity !== 'sleeping' && agent.zone !== 'break-room';
+      // Lead-office occasional wandering (stretch legs, grab coffee from desk, look out window)
+      const inLeadIdle = agent.zone === 'lead-office' && agent.activity !== 'walking' && agent.activity !== 'sleeping';
+      if (inLeadIdle) {
+        if (agent.wanderTimer === undefined) {
+          agent.wanderTimer = 8 + Math.random() * 12; // 8-20s before first wander
+        }
+        agent.wanderTimer -= dt;
+        if (agent.wanderTimer <= 0) {
+          // 50% chance to wander to a POI, 50% chance to return to seat
+          const atSeat = Math.hypot(agent.x - target.x, agent.y - target.y) < 8;
+          if (atSeat) {
+            const poi = LEAD_OFFICE_POIS[Math.floor(Math.random() * LEAD_OFFICE_POIS.length)];
+            const dist = Math.hypot(poi.x - agent.x, poi.y - agent.y);
+            if (dist > 8) {
+              agent.previousActivity = agent.activity;
+              agent.activity = 'walking';
+              agent.seated = false;
+              agent.targetX = poi.x;
+              agent.targetY = poi.y;
+              agent.walkPath = this.nav.findPath(agent.x, agent.y, poi.x, poi.y);
+              agent.walkIndex = 0;
+            }
+          } else {
+            // Walk back to seat
+            agent.previousActivity = agent.activity;
+            agent.activity = 'walking';
+            agent.seated = false;
+            agent.targetX = target.x;
+            agent.targetY = target.y;
+            agent.walkPath = this.nav.findPath(agent.x, agent.y, target.x, target.y);
+            agent.walkIndex = 0;
+          }
+          agent.wanderTimer = 6 + Math.random() * 10; // 6-16s until next action
+        }
+      }
+
+      agent.seated = agent.activity !== 'walking' && agent.activity !== 'sleeping' && agent.zone !== 'break-room' && !(agent.zone === 'lead-office' && Math.hypot(agent.x - target.x, agent.y - target.y) > 8);
       if (agent.seated) {
         // while seated, face exactly with chair orientation
         agent.facing = seat.seat.facing;
@@ -556,8 +765,43 @@ export class ZoneManager {
     }
   }
 
-  drawNavDebug(ctx: CanvasRenderingContext2D, s: number): void {
+  drawNavDebug(ctx: CanvasRenderingContext2D, s: number, agents?: Map<string, AgentState>): void {
     this.nav.debugDraw(ctx, s);
+
+    // Draw active walk paths for all agents
+    if (NAV_DEBUG && agents) {
+      ctx.save();
+      const colors = ['#ff0000', '#00ff00', '#0088ff', '#ff00ff', '#ffaa00', '#00ffff'];
+      let ci = 0;
+      for (const agent of agents.values()) {
+        if (!agent.walkPath || agent.walkPath.length === 0) continue;
+        const wi = agent.walkIndex ?? 0;
+        const color = colors[ci++ % colors.length];
+
+        // Draw path line
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.round(agent.x * s), Math.round(agent.y * s));
+        for (let i = wi; i < agent.walkPath.length; i++) {
+          ctx.lineTo(Math.round(agent.walkPath[i].x * s), Math.round(agent.walkPath[i].y * s));
+        }
+        ctx.stroke();
+
+        // Draw waypoint dots
+        ctx.fillStyle = color;
+        for (let i = wi; i < agent.walkPath.length; i++) {
+          ctx.beginPath();
+          ctx.arc(
+            Math.round(agent.walkPath[i].x * s),
+            Math.round(agent.walkPath[i].y * s),
+            3, 0, Math.PI * 2,
+          );
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
   }
 
   resetLeadAgent(): void {
