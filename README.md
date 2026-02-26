@@ -6,6 +6,8 @@ A pixel-art RPG-style office visualization for [OpenClaw](https://openclaw.dev) 
 
 ![Pixel Claw office view](docs/pixel.png)
 
+Add `?navDebug` to the URL to reveal the image-derived walkability grid — every teal floor pixel becomes a walkable cell, furniture and walls are blocked, and you can watch agents' BFS pathfinding routes light up in real time as they navigate between rooms.
+
 ![Navigation debug overlay](docs/pixel_navDebug.png)
 
 ## Features
